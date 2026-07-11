@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-10T00:00:00.000Z",
+  "title": "Design System: Meu Inventário",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Ledger Blue",
+        "canonical": "#2563eb",
+        "tonalRamp": ["#eff6ff", "#dbeafe", "#bfdbfe", "#60a5fa", "#3b82f6", "#2563eb", "#1d4ed8", "#1e3a8a"]
+      },
+      "primary-hover": {
+        "role": "primary",
+        "displayName": "Ledger Blue, Pressed",
+        "canonical": "#1d4ed8"
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#1e293b",
+        "tonalRamp": ["#f8fafc", "#f1f5f9", "#e2e8f0", "#94a3b8", "#64748b", "#475569", "#334155", "#0f172a"]
+      },
+      "body": { "role": "neutral", "displayName": "Body", "canonical": "#475569" },
+      "muted": { "role": "neutral", "displayName": "Muted", "canonical": "#64748b" },
+      "border": { "role": "neutral", "displayName": "Border", "canonical": "#e2e8f0" },
+      "border-strong": { "role": "neutral", "displayName": "Border, Strong", "canonical": "#cbd5e1" },
+      "bg": { "role": "neutral", "displayName": "Page Background", "canonical": "#f8fafc" },
+      "surface": { "role": "neutral", "displayName": "Surface", "canonical": "#ffffff" },
+      "sidebar-bg": { "role": "neutral", "displayName": "Sidebar Ink", "canonical": "#0f172a" },
+      "sidebar-text": { "role": "neutral", "displayName": "Sidebar Text", "canonical": "#cbd5e1" },
+      "sidebar-text-hover": { "role": "neutral", "displayName": "Sidebar Text, Hover", "canonical": "#f1f5f9" },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Danger",
+        "canonical": "#dc2626",
+        "tonalRamp": ["#fef2f2", "#fee2e2", "#fecaca", "#f87171", "#ef4444", "#dc2626", "#b91c1c", "#7f1d1d"]
+      },
+      "danger-strong": { "role": "tertiary", "displayName": "Danger, Strong", "canonical": "#b91c1c" },
+      "danger-bg": { "role": "tertiary", "displayName": "Danger Background", "canonical": "#fef2f2" }
+    },
+    "typographyMeta": {
+      "title": { "displayName": "Title", "purpose": "Page-level headers, e.g. the Dashboard greeting." },
+      "subtitle": { "displayName": "Subtitle", "purpose": "Form labels, card titles, the logged-in user's name." },
+      "body": { "displayName": "Body", "purpose": "Descriptions, secondary copy, stat placeholders." },
+      "label": { "displayName": "Label", "purpose": "Helper text, field validation messages, role tags." }
+    },
+    "shadows": [
+      {
+        "name": "card-lift",
+        "value": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
+        "purpose": "Always-on ambient lift for cards and the login panel. Not a hover effect."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-standard",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1)",
+        "purpose": "Default easing for color and background transitions on hover/focus (150ms)."
+      },
+      {
+        "name": "sidebar-slide",
+        "value": "cubic-bezier(0.4, 0, 0.2, 1) 200ms",
+        "purpose": "Mobile sidebar slide-in/out via transform."
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Main call-to-action button, e.g. login submit.",
+      "html": "<button class=\"ds-btn-primary\">Entrar</button>",
+      "css": ".ds-btn-primary { background: #2563eb; color: #ffffff; font-size: 0.875rem; font-weight: 600; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-primary:hover { background: #1d4ed8; } .ds-btn-primary:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Bordered ghost button for lower-emphasis actions, e.g. logout.",
+      "html": "<button class=\"ds-btn-secondary\">Sair</button>",
+      "css": ".ds-btn-secondary { background: #ffffff; color: #475569; font-size: 0.875rem; font-weight: 500; padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-btn-secondary:hover { background: #f8fafc; } .ds-btn-secondary:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }"
+    },
+    {
+      "name": "Input Field",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Labeled text input with a single-ring focus treatment.",
+      "html": "<div class=\"ds-field\"><label class=\"ds-field-label\" for=\"ds-email\">E-mail</label><input class=\"ds-field-input\" id=\"ds-email\" type=\"email\" /></div>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 4px; } .ds-field-label { font-size: 0.875rem; font-weight: 500; color: #334155; } .ds-field-input { background: #ffffff; color: #1e293b; font-size: 0.875rem; padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 6px; } .ds-field-input:focus-visible { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 1px #3b82f6; }"
+    },
+    {
+      "name": "Sidebar Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Dark sidebar navigation link, default and active states.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item ds-nav-item-active\" href=\"#\">Dashboard</a><a class=\"ds-nav-item\" href=\"#\">Matérias-primas</a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 4px; background: #0f172a; padding: 12px; } .ds-nav-item { display: block; padding: 8px 12px; border-radius: 6px; font-size: 0.875rem; font-weight: 500; color: #cbd5e1; text-decoration: none; transition: background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms cubic-bezier(0.4, 0, 0.2, 1); } .ds-nav-item:hover { background: #1e293b; color: #f1f5f9; } .ds-nav-item-active { background: #2563eb; color: #ffffff; }"
+    },
+    {
+      "name": "Stat Card",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Dashboard indicator tile: label plus a value that shows an em-dash until real data exists.",
+      "html": "<div class=\"ds-card\"><p class=\"ds-card-label\">Estoque baixo</p><p class=\"ds-card-value\">—</p></div>",
+      "css": ".ds-card { background: #ffffff; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); } .ds-card-label { font-size: 0.875rem; font-weight: 500; color: #64748b; margin: 0; } .ds-card-value { font-size: 1.5rem; font-weight: 600; color: #1e293b; margin: 8px 0 0; }"
+    },
+    {
+      "name": "Empty State Card",
+      "kind": "custom",
+      "refersTo": "card",
+      "description": "Dashed-border placeholder for sections not built yet (Produção, Pedidos, Romaneios, etc.) — never fabricated data.",
+      "html": "<div class=\"ds-empty\"><h1 class=\"ds-empty-title\">Produção</h1><p class=\"ds-empty-body\">Esta seção será implementada na próxima etapa.</p></div>",
+      "css": ".ds-empty { background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 40px; text-align: center; } .ds-empty-title { font-size: 1.125rem; font-weight: 600; color: #1e293b; margin: 0; } .ds-empty-body { font-size: 0.875rem; color: #64748b; margin: 8px 0 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Workshop Ledger",
+    "overview": "Meu Inventário reads like a well-kept ledger, not a SaaS dashboard: flat surfaces, one accent color reserved strictly for action and status, and typography that carries all the hierarchy on its own. The system exists to get a solo workshop owner in, informed, and back to work — every visual decision is judged against that five-second stock check, not against how a screenshot would look in a portfolio.\n\nIt deliberately rejects the inventory-SaaS playbook: no decorative hero-metric tiles standing in for real data, no dense enterprise data-grids built for teams of analysts, no ceremony (extra clicks, confirmation modals, decorative motion) wrapped around simple daily actions.",
+    "keyCharacteristics": [
+      "Flat by default — a single subtle shadow, used only on cards, is the entire elevation vocabulary",
+      "One accent (blue) reserved for actionable and active elements; never decorative",
+      "A single system-UI font stack, hierarchy carried by weight/size/color alone",
+      "A dark, utilitarian sidebar as the one deliberate contrast surface",
+      "Generous but efficient whitespace — no filler, no empty ornamentation"
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Blue appears only on things you can act on or that are currently active: a submit button, the active nav item, a focus ring. If it's not clickable or current, it isn't blue.", "section": "colors" },
+      { "name": "The Single Family Rule", "body": "One font family end to end. A second typeface would read as decoration this system explicitly rejects — hierarchy is a weight/size/color problem, never a font-pairing problem.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Surfaces do not gain shadow on hover or focus. If a state needs to read as active, change background or border color — never add elevation to communicate it.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep every screen flat: Card Lift is the only shadow allowed, applied at rest, never intensified on hover.",
+      "Do reserve Ledger Blue for actionable or active elements only (buttons, active nav, focus rings).",
+      "Do carry hierarchy with weight/size/color inside the single system-UI font family.",
+      "Do use the dashed-border empty-state pattern for unbuilt sections instead of fabricating placeholder data."
+    ],
+    "donts": [
+      "Don't add decorative hero-metric cards with numbers that aren't backed by real data — Meu Inventário's stat tiles show an em-dash until there's a real value, never a fake number for polish.",
+      "Don't build dense, analyst-style data-grids. This is a solo-owner tool, not a BI console.",
+      "Don't add ceremony — confirmation modals, extra clicks, or decorative motion — around simple daily actions like checking or logging stock.",
+      "Don't introduce a second typeface or a display/hero type size; there is no marketing surface here to justify one.",
+      "Don't use border-left/border-right as a colored accent stripe anywhere in the system."
+    ]
+  }
+}
