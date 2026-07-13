@@ -8,7 +8,7 @@ colors:
   body: "#475569"
   muted: "#64748b"
   border: "#e2e8f0"
-  border-strong: "#cbd5e1"
+  border-strong: "#64748b"
   bg: "#f8fafc"
   surface: "#ffffff"
   sidebar-bg: "#0f172a"
@@ -17,6 +17,8 @@ colors:
   danger: "#dc2626"
   danger-strong: "#b91c1c"
   danger-bg: "#fef2f2"
+  success: "#047857"
+  success-bg: "#ecfdf5"
 typography:
   title:
     fontFamily: "system-ui, \"Segoe UI\", Roboto, sans-serif"
@@ -116,7 +118,7 @@ The palette is a restrained neutral scale (slate) with one accent (blue) and one
 - **Body** (`#475569`): secondary interactive text (icon buttons, the "Sair" logout label).
 - **Muted** (`#64748b`): tertiary text — captions, placeholder stat values, helper copy.
 - **Border** (`#e2e8f0`): card and header dividing lines.
-- **Border, Strong** (`#cbd5e1`): input borders — one step darker so form fields read as clearly interactive.
+- **Border, Strong** (`#64748b`): input borders — dark enough to preserve the 3:1 non-text contrast required for controls on white.
 - **Page Background** (`#f8fafc`): the app canvas behind cards and the content area.
 - **Surface** (`#ffffff`): cards, the topbar, inputs, the login panel.
 - **Sidebar Ink** (`#0f172a`): the sidebar's dark background — the system's one deliberate contrast surface.
@@ -127,6 +129,8 @@ The palette is a restrained neutral scale (slate) with one accent (blue) and one
 - **Danger** (`#dc2626`): field-level validation errors.
 - **Danger, Strong** (`#b91c1c`): text inside error banners.
 - **Danger Background** (`#fef2f2`): error banner background.
+- **Success** (`#047857`): successful operation text and icon.
+- **Success Background** (`#ecfdf5`): successful operation banner background.
 
 ### Named Rules
 **The One Accent Rule.** Blue appears only on things you can act on or that are currently active: a submit button, the active nav item, a focus ring. If it's not clickable or current, it isn't blue.
@@ -176,7 +180,7 @@ Every control should feel **plain and dependable**: behaves exactly as expected,
 
 ### Inputs / Fields
 - **Style:** Surface background, 1px Border-Strong outline, `rounded-md`, `8px 12px` padding.
-- **Focus:** border and ring shift to Ledger Blue (`focus:ring-1`) — the only place a glow-like effect is allowed, and it's a 1px ring, not a shadow.
+- **Focus:** border and a 2px ring shift to Ledger Blue — the only glow-like effect in the system, reserved for keyboard and field focus.
 - **Error:** helper text below the field in Danger (`#dc2626`), field border unchanged — the message carries the signal, not a red outline.
 
 ### Navigation

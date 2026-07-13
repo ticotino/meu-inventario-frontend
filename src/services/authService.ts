@@ -7,6 +7,11 @@ interface Envelope<T> {
   data: T;
 }
 
+interface RefreshSessionData {
+  accessToken: string;
+  usuario?: Usuario;
+}
+
 export async function login(email: string, senha: string): Promise<Usuario> {
   const { data } = await api.post<Envelope<{ accessToken: string; usuario: Usuario }>>("/auth/login", {
     email,
@@ -31,8 +36,9 @@ export async function fetchMe(): Promise<Usuario> {
 
 export async function tryRestoreSession(): Promise<Usuario | null> {
   try {
-    const { data } = await api.post<Envelope<{ accessToken: string }>>("/auth/refresh");
+    const { data } = await api.post<Envelope<RefreshSessionData>>("/auth/refresh");
     setAccessToken(data.data.accessToken);
+    if (data.data.usuario) return data.data.usuario;
     return await fetchMe();
   } catch {
     return null;

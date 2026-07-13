@@ -56,6 +56,11 @@ api.interceptors.response.use(
   },
 );
 
+export interface Envelope<T> {
+  success: true;
+  data: T;
+}
+
 interface ApiErrorResponse {
   success: false;
   error: { message: string; details?: unknown };
@@ -64,7 +69,15 @@ interface ApiErrorResponse {
 export function getApiErrorMessage(error: unknown, fallback = "Ocorreu um erro inesperado"): string {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data as ApiErrorResponse | undefined;
-    if (data?.error?.message) return data.error.message;
+    if (data?.error?.message) {
+      // O backend detalha erros por item em details.itens (ex.: qual produto
+      // não fecha e por quanto) — sem isso a mensagem genérica não é acionável.
+      const itens = (data.error.details as { itens?: unknown } | undefined)?.itens;
+      if (Array.isArray(itens) && itens.length > 0 && itens.every((item) => typeof item === "string")) {
+        return `${data.error.message}: ${itens.join(" · ")}`;
+      }
+      return data.error.message;
+    }
   }
   return fallback;
 }
