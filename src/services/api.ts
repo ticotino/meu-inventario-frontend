@@ -2,8 +2,20 @@ import axios, { AxiosError } from "axios";
 import type { InternalAxiosRequestConfig } from "axios";
 import { getAccessToken, setAccessToken } from "./tokenStore";
 
+function getApiBaseUrl(): string {
+  const configuredUrl = import.meta.env.VITE_API_URL?.trim().replace(/\/+$/, "");
+
+  if (!configuredUrl) {
+    throw new Error("VITE_API_URL não está configurada.");
+  }
+
+  return configuredUrl.endsWith("/api") ? configuredUrl : `${configuredUrl}/api`;
+}
+
+export const API_BASE_URL = getApiBaseUrl();
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: API_BASE_URL,
   withCredentials: true,
 });
 
@@ -19,7 +31,7 @@ let refreshPromise: Promise<string> | null = null;
 
 async function refreshAccessToken(): Promise<string> {
   const response = await axios.post<{ data: { accessToken: string } }>(
-    `${import.meta.env.VITE_API_URL}/auth/refresh`,
+    `${API_BASE_URL}/auth/refresh`,
     {},
     { withCredentials: true },
   );
