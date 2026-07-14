@@ -80,6 +80,11 @@ export function getApiErrorMessage(error: unknown, fallback = "Ocorreu um erro i
       }
       return data.error.message;
     }
+    // Sem response = a requisição nem chegou ao backend (rede, CORS, URL errada).
+    // Cair no fallback aqui mascararia o problema como erro de credenciais.
+    if (!error.response) {
+      return "Não foi possível conectar ao servidor. Tente novamente em instantes.";
+    }
   }
   return fallback;
 }
