@@ -19,7 +19,10 @@ export async function createUsuario(input: CreateUsuarioInput): Promise<Usuario>
   return data.data;
 }
 
-export async function createConvite(email: string): Promise<ConviteCriado> {
-  const { data } = await api.post<Envelope<ConviteCriado>>("/usuarios/convites", { email });
+export async function createConvite(
+  email: string,
+  papel: Papel = "funcionario",
+): Promise<ConviteCriado> {
+  const { data } = await api.post<Envelope<ConviteCriado>>("/usuarios/convites", { email, papel });
   return data.data;
 }

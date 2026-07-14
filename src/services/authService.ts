@@ -1,4 +1,4 @@
-import type { Usuario } from "../types/auth";
+import type { Papel, Usuario } from "../types/auth";
 import { api } from "./api";
 import { setAccessToken } from "./tokenStore";
 
@@ -14,6 +14,7 @@ interface RefreshSessionData {
 
 export interface ConviteData {
   email: string;
+  papel: Papel;
   expiraEm: string;
 }
 

@@ -22,53 +22,36 @@ const alignmentClasses: Record<AuthShellSize, string> = {
   wide: "items-start sm:items-center",
 };
 
-const navigationItemClass =
-  "flex min-h-11 items-center justify-center rounded-md px-3 py-2 text-sm font-medium";
+const linkClass =
+  "inline-flex min-h-11 items-center rounded-md px-2 text-sm font-semibold text-action transition-colors hover:text-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 motion-reduce:transition-none";
 
-function AuthNavigation({ context }: { context: AuthContext }) {
-  if (context === "admin-access") {
-    return (
-      <nav aria-label="Acesso à conta" className="mt-6 grid grid-cols-2 gap-1 rounded-md bg-page p-1">
-        <Link
-          to="/"
-          className={`${navigationItemClass} text-body transition-colors hover:bg-surface hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 motion-reduce:transition-none`}
-        >
-          Voltar ao sistema
-        </Link>
-        <span aria-current="page" className={`${navigationItemClass} bg-action text-surface`}>
-          Gerenciar acessos
-        </span>
-      </nav>
-    );
-  }
-
-  if (context === "invite") {
-    return (
-      <nav aria-label="Acesso à conta" className="mt-6 grid grid-cols-2 gap-1 rounded-md bg-page p-1">
-        <Link
-          to="/login"
-          className={`${navigationItemClass} text-body transition-colors hover:bg-surface hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 motion-reduce:transition-none`}
-        >
-          Entrar
-        </Link>
-        <span aria-current="page" className={`${navigationItemClass} bg-action text-surface`}>
-          Aceitar convite
-        </span>
-      </nav>
-    );
-  }
-
+function AdminNavigation() {
   return (
-    <div className="mt-6">
-      <nav aria-label="Acesso à conta" className="rounded-md bg-page p-1">
-        <span aria-current="page" className={`${navigationItemClass} bg-action text-surface`}>
-          Entrar
-        </span>
-      </nav>
-      <p className="mt-3 text-sm leading-5 text-muted">
-        Contas de funcionários são criadas por convite enviado pelo administrador.
-      </p>
-    </div>
+    <nav aria-label="Gestão de acessos" className="mt-6 grid grid-cols-2 gap-1 rounded-md bg-page p-1">
+      <Link to="/" className={`${linkClass} justify-center text-body hover:bg-surface hover:text-ink`}>
+        Voltar ao sistema
+      </Link>
+      <span
+        aria-current="page"
+        className="flex min-h-11 items-center justify-center rounded-md bg-action px-3 py-2 text-sm font-medium text-surface"
+      >
+        Gerenciar acessos
+      </span>
+    </nav>
+  );
+}
+
+function AuthFooter({ context }: { context: Exclude<AuthContext, "admin-access"> }) {
+  const isLogin = context === "login";
+  return (
+    <footer className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
+      <span className="text-sm text-body">
+        {isLogin ? "Recebeu um convite?" : "Já tem uma conta?"}
+      </span>
+      <Link to={isLogin ? "/cadastro" : "/login"} className={linkClass}>
+        {isLogin ? "Criar conta" : "Entrar na sua conta"}
+      </Link>
+    </footer>
   );
 }
 
@@ -83,13 +66,15 @@ export function AuthShell({
     <main className={`flex min-h-screen justify-center bg-page px-4 py-8 sm:px-6 ${alignmentClasses[size]}`}>
       <div className={`w-full ${sizeClasses[size]} rounded-lg border border-border bg-surface p-6 shadow-card sm:p-8`}>
         <header>
-          <h1 className="text-xl font-semibold text-ink">{title}</h1>
-          <p className="mt-1 max-w-prose text-sm text-muted">{description}</p>
+          <h1 className="text-2xl font-semibold text-ink">{title}</h1>
+          <p className="mt-1 max-w-prose text-sm leading-5 text-muted">{description}</p>
         </header>
 
-        <AuthNavigation context={context} />
+        {context === "admin-access" && <AdminNavigation />}
 
         <div className="mt-6">{children}</div>
+
+        {context !== "admin-access" && <AuthFooter context={context} />}
       </div>
     </main>
   );

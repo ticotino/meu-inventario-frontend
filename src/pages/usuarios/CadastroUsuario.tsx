@@ -20,6 +20,7 @@ const adminSchema = z.object({
 
 const inviteSchema = z.object({
   email: z.string().trim().email("Informe um e-mail válido").max(160, "O e-mail é muito longo"),
+  papel: z.enum(["admin", "funcionario"]),
 });
 
 type AdminForm = z.infer<typeof adminSchema>;
@@ -27,6 +28,7 @@ type InviteForm = z.infer<typeof inviteSchema>;
 
 interface GeneratedInvite {
   email: string;
+  papel: "admin" | "funcionario";
   url: string;
   expiraEm: string;
 }
@@ -50,7 +52,7 @@ export function CadastroUsuario() {
 
   const inviteForm = useForm<InviteForm>({
     resolver: zodResolver(inviteSchema),
-    defaultValues: { email: "" },
+    defaultValues: { email: "", papel: "funcionario" },
     mode: "onBlur",
     reValidateMode: "onChange",
   });
@@ -80,13 +82,14 @@ export function CadastroUsuario() {
     setCopyFeedback(null);
     setGeneratedInvite(null);
     try {
-      const invite = await createConvite(data.email);
+      const invite = await createConvite(data.email, data.papel);
       setGeneratedInvite({
         email: data.email.trim().toLowerCase(),
+        papel: data.papel,
         url: new URL(`/cadastro/${invite.token}`, window.location.origin).toString(),
         expiraEm: invite.expiraEm,
       });
-      inviteForm.reset();
+      inviteForm.reset({ email: "", papel: "funcionario" });
     } catch (error) {
       setInviteError(getApiErrorMessage(error, "Não foi possível gerar o convite."));
     }
@@ -109,7 +112,7 @@ export function CadastroUsuario() {
   return (
     <AuthShell
       title="Gerenciar acessos"
-      description="Crie administradores ou gere um convite individual para um funcionário."
+      description="Crie administradores diretamente ou envie convites individuais com o acesso correto."
       context="admin-access"
       size="wide"
     >
@@ -195,10 +198,10 @@ export function CadastroUsuario() {
 
         <section aria-labelledby="invite-heading" className="border-t border-border pt-8">
           <h2 id="invite-heading" className="text-lg font-semibold text-ink">
-            Convidar funcionário
+            Convidar usuário
           </h2>
           <p id="invite-description" className="mt-1 text-sm leading-5 text-muted">
-            O link funciona uma vez, vale por 7 dias e só cria uma conta de funcionário. Um novo convite para o mesmo e-mail revoga o anterior.
+            Escolha o acesso antes de gerar o link. Ele funciona uma vez, vale por 7 dias e um novo convite para o mesmo e-mail revoga o anterior.
           </p>
 
           <form
@@ -210,7 +213,7 @@ export function CadastroUsuario() {
           >
             <Input
               id="invite-email"
-              label="E-mail do funcionário"
+              label="E-mail da pessoa convidada"
               type="email"
               autoComplete="email"
               required
@@ -218,6 +221,46 @@ export function CadastroUsuario() {
               error={inviteForm.formState.errors.email?.message}
               {...inviteForm.register("email")}
             />
+
+            <fieldset>
+              <legend className="text-sm font-medium text-body">Tipo de conta</legend>
+              <p id="invite-role-hint" className="mt-1 text-sm leading-5 text-muted">
+                O papel ficará gravado no convite e não poderá ser alterado no cadastro.
+              </p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="flex min-h-16 cursor-pointer items-start gap-3 rounded-md border border-control-border bg-surface p-3 transition-colors hover:bg-page focus-within:ring-2 focus-within:ring-action focus-within:ring-offset-2 has-[:checked]:border-action has-[:checked]:bg-page motion-reduce:transition-none">
+                  <input
+                    type="radio"
+                    value="funcionario"
+                    aria-describedby="invite-role-hint"
+                    className="mt-0.5 h-5 w-5 shrink-0 accent-action"
+                    {...inviteForm.register("papel")}
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-ink">Funcionário</span>
+                    <span className="mt-1 block text-sm leading-5 text-muted">
+                      Opera o inventário sem gerenciar contas.
+                    </span>
+                  </span>
+                </label>
+
+                <label className="flex min-h-16 cursor-pointer items-start gap-3 rounded-md border border-control-border bg-surface p-3 transition-colors hover:bg-page focus-within:ring-2 focus-within:ring-action focus-within:ring-offset-2 has-[:checked]:border-action has-[:checked]:bg-page motion-reduce:transition-none">
+                  <input
+                    type="radio"
+                    value="admin"
+                    aria-describedby="invite-role-hint"
+                    className="mt-0.5 h-5 w-5 shrink-0 accent-action"
+                    {...inviteForm.register("papel")}
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-ink">Administrador</span>
+                    <span className="mt-1 block text-sm leading-5 text-muted">
+                      Acessa todas as áreas e gerencia usuários.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </fieldset>
 
             {inviteError && (
               <p role="alert" className={feedbackErrorClass}>
@@ -231,7 +274,7 @@ export function CadastroUsuario() {
               loading={inviteForm.formState.isSubmitting}
               loadingText="Gerando convite..."
             >
-              Gerar link de convite
+              Gerar convite
             </Button>
           </form>
 
@@ -244,7 +287,7 @@ export function CadastroUsuario() {
                 type="text"
                 readOnly
                 value={generatedInvite.url}
-                hint={`Vinculado a ${generatedInvite.email}. Expira em ${new Intl.DateTimeFormat("pt-BR", {
+                hint={`Conta de ${generatedInvite.papel === "admin" ? "administrador" : "funcionário"} vinculada a ${generatedInvite.email}. Expira em ${new Intl.DateTimeFormat("pt-BR", {
                   dateStyle: "short",
                   timeStyle: "short",
                 }).format(new Date(generatedInvite.expiraEm))}.`}

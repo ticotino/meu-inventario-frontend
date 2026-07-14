@@ -12,6 +12,11 @@ import { feedbackErrorClass } from "../../components/ui/formStyles";
 import { useAuth } from "../../hooks/useAuth";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { getApiErrorMessage } from "../../services/api";
+import {
+  forgetRememberedAccount,
+  getRememberedAccount,
+  rememberAccount,
+} from "../../services/rememberedAccount";
 
 const loginSchema = z.object({
   email: z.string().trim().email("Informe um e-mail válido").max(254, "O e-mail é muito longo"),
@@ -25,99 +30,169 @@ interface LoginLocationState {
   email?: string;
 }
 
+function getInitials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  return words.slice(0, 2).map((word) => word[0]?.toUpperCase()).join("") || "MI";
+}
+
 export function Login() {
   useDocumentTitle("Entrar");
   const { login } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const locationState = location.state as LoginLocationState | null;
-  const [erro, setErro] = useState<string | null>(null);
-  const [sucesso] = useState<string | null>(() =>
+  const [remembered, setRemembered] = useState(getRememberedAccount);
+  const [usingRemembered, setUsingRemembered] = useState(
+    Boolean(remembered && !locationState?.email),
+  );
+  const [error, setError] = useState<string | null>(null);
+  const [success] = useState<string | null>(() =>
     locationState?.cadastroConcluido
       ? "Conta criada com sucesso. Entre com suas credenciais."
       : null,
   );
-  const [mostrarSenha, setMostrarSenha] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    setFocus,
-    formState: { errors, isSubmitting },
-  } = useForm<LoginForm>({
+  const form = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
-    defaultValues: { email: locationState?.email ?? "", senha: "" },
+    defaultValues: {
+      email: locationState?.email ?? remembered?.email ?? "",
+      senha: "",
+    },
     mode: "onBlur",
     reValidateMode: "onChange",
   });
 
   useEffect(() => {
-    setFocus("email");
-    if (location.state) navigate("/login", { replace: true, state: null });
-  }, [location.state, navigate, setFocus]);
+    form.setFocus(usingRemembered ? "senha" : "email");
+  }, [form, usingRemembered]);
 
-  async function onSubmit(dados: LoginForm) {
-    setErro(null);
+  useEffect(() => {
+    if (location.state) navigate("/login", { replace: true, state: null });
+  }, [location.state, navigate]);
+
+  function switchToAnotherAccount() {
+    setUsingRemembered(false);
+    setError(null);
+    setShowPassword(false);
+    form.reset({ email: "", senha: "" });
+  }
+
+  function removeRememberedAccount() {
+    forgetRememberedAccount();
+    setRemembered(null);
+    switchToAnotherAccount();
+  }
+
+  async function onSubmit(data: LoginForm) {
+    setError(null);
     try {
-      await login(dados.email, dados.senha);
+      const user = await login(data.email, data.senha);
+      rememberAccount(user);
       navigate("/", { replace: true });
-    } catch (error) {
-      setErro(getApiErrorMessage(error, "Não foi possível entrar. Verifique seus dados."));
+    } catch (submitError) {
+      setError(getApiErrorMessage(submitError, "Não foi possível entrar. Verifique seus dados."));
     }
   }
 
   return (
     <AuthShell
-      title="Meu Inventário"
-      description="Entre com suas credenciais para continuar."
+      title="Entrar"
+      description={usingRemembered ? "Digite sua senha para continuar." : "Acesse sua conta do Meu Inventário."}
       context="login"
     >
-      <div className="space-y-4">
-        {sucesso && <SuccessBanner>{sucesso}</SuccessBanner>}
+      <div className="space-y-5">
+        {success && <SuccessBanner>{success}</SuccessBanner>}
 
         <form
-          onSubmit={handleSubmit(onSubmit, (errors) => setFocus(errors.email ? "email" : "senha"))}
+          onSubmit={form.handleSubmit(onSubmit, (errors) => {
+            const firstError = errors.email ? "email" : "senha";
+            form.setFocus(firstError);
+          })}
           className="space-y-4"
           noValidate
-          aria-busy={isSubmitting}
+          aria-busy={form.formState.isSubmitting}
         >
-          <Input
-            id="email"
-            label="E-mail"
-            type="email"
-            autoComplete="email"
-            required
-            maxLength={254}
-            error={errors.email?.message}
-            {...register("email")}
-          />
+          {usingRemembered && remembered ? (
+            <>
+              <input type="hidden" {...form.register("email")} />
+              <div
+                role="group"
+                aria-label={`Conta lembrada de ${remembered.nome}`}
+                className="flex min-h-16 items-center gap-3 rounded-md border border-border bg-page p-3"
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sidebar text-sm font-semibold text-sidebar-text-strong"
+                >
+                  {getInitials(remembered.nome)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm text-body">
+                    Bem-vindo de volta, <strong className="font-semibold text-ink">{remembered.nome}</strong>
+                  </span>
+                  <span className="mt-0.5 block truncate text-sm text-muted">{remembered.email}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={removeRememberedAccount}
+                  className="inline-flex min-h-11 shrink-0 items-center rounded-md px-2 text-sm font-semibold text-danger-strong transition-colors hover:bg-danger-bg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 motion-reduce:transition-none"
+                >
+                  Remover
+                </button>
+              </div>
+            </>
+          ) : (
+            <Input
+              id="email"
+              label="E-mail"
+              type="email"
+              autoComplete="email"
+              required
+              maxLength={254}
+              error={form.formState.errors.email?.message}
+              {...form.register("email")}
+            />
+          )}
 
           <Input
             id="senha"
             label="Senha"
-            type={mostrarSenha ? "text" : "password"}
+            type={showPassword ? "text" : "password"}
             autoComplete="current-password"
             required
             maxLength={128}
-            error={errors.senha?.message}
+            error={form.formState.errors.senha?.message}
             endAdornment={
               <PasswordVisibilityButton
-                visible={mostrarSenha}
-                onToggle={() => setMostrarSenha((visivel) => !visivel)}
+                visible={showPassword}
+                onToggle={() => setShowPassword((visible) => !visible)}
               />
             }
-            {...register("senha")}
+            {...form.register("senha")}
           />
 
-          {erro && (
+          {error && (
             <p role="alert" className={feedbackErrorClass}>
-              {erro}
+              {error}
             </p>
           )}
 
-          <Button type="submit" fullWidth loading={isSubmitting} loadingText="Entrando...">
-            Entrar
-          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+            {usingRemembered && (
+              <Button type="button" variant="secondary" onClick={switchToAnotherAccount} className="w-full sm:w-auto">
+                Entrar com outra conta
+              </Button>
+            )}
+            <Button
+              type="submit"
+              loading={form.formState.isSubmitting}
+              loadingText="Entrando..."
+              className="w-full sm:w-auto"
+            >
+              Entrar
+            </Button>
+          </div>
         </form>
       </div>
     </AuthShell>
