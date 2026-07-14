@@ -12,6 +12,29 @@ interface RefreshSessionData {
   usuario?: Usuario;
 }
 
+export interface ConviteData {
+  email: string;
+  expiraEm: string;
+}
+
+export interface AcceptConviteInput {
+  nome: string;
+  senha: string;
+}
+
+export async function getConvite(token: string): Promise<ConviteData> {
+  const { data } = await api.get<Envelope<ConviteData>>(`/auth/convites/${encodeURIComponent(token)}`);
+  return data.data;
+}
+
+export async function acceptConvite(token: string, input: AcceptConviteInput): Promise<Usuario> {
+  const { data } = await api.post<Envelope<Usuario>>(
+    `/auth/convites/${encodeURIComponent(token)}/aceitar`,
+    input,
+  );
+  return data.data;
+}
+
 export async function login(email: string, senha: string): Promise<Usuario> {
   const { data } = await api.post<Envelope<{ accessToken: string; usuario: Usuario }>>("/auth/login", {
     email,

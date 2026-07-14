@@ -9,6 +9,9 @@ const AppLayout = lazy(() =>
 );
 const NotFound = lazy(() => import("./pages/NotFound").then((module) => ({ default: module.NotFound })));
 const Login = lazy(() => import("./pages/auth/Login").then((module) => ({ default: module.Login })));
+const Cadastro = lazy(() =>
+  import("./pages/auth/Cadastro").then((module) => ({ default: module.Cadastro })),
+);
 const Dashboard = lazy(() =>
   import("./pages/dashboard/Dashboard").then((module) => ({ default: module.Dashboard })),
 );
@@ -86,8 +89,14 @@ export default function App() {
         <Suspense fallback={<RouteLoading />}>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/cadastro" element={<Cadastro />} />
+            <Route path="/cadastro/:token" element={<Cadastro />} />
 
             <Route element={<ProtectedRoute />}>
+              <Route element={<RequireAdmin />}>
+                <Route path="/usuarios/novo" element={<CadastroUsuario />} />
+              </Route>
+
               <Route element={<AppLayout />}>
                 <Route path="/" element={<Dashboard />} />
                 <Route path="/fabricantes" element={<Fabricantes />} />
@@ -108,9 +117,6 @@ export default function App() {
                 <Route path="/romaneios/novo" element={<NovoRomaneio />} />
                 <Route path="/romaneios/:id" element={<RomaneioDetalhe />} />
 
-                <Route element={<RequireAdmin />}>
-                  <Route path="/usuarios/novo" element={<CadastroUsuario />} />
-                </Route>
               </Route>
             </Route>
 

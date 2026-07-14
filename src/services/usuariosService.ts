@@ -9,7 +9,17 @@ export interface CreateUsuarioInput {
   papel: Papel;
 }
 
+export interface ConviteCriado {
+  token: string;
+  expiraEm: string;
+}
+
 export async function createUsuario(input: CreateUsuarioInput): Promise<Usuario> {
   const { data } = await api.post<Envelope<Usuario>>("/usuarios", input);
+  return data.data;
+}
+
+export async function createConvite(email: string): Promise<ConviteCriado> {
+  const { data } = await api.post<Envelope<ConviteCriado>>("/usuarios/convites", { email });
   return data.data;
 }

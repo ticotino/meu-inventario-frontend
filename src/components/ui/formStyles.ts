@@ -2,8 +2,8 @@ export const fieldClass =
   "mt-1 min-h-11 w-full rounded-md border border-control-border bg-surface px-3 py-2 text-base text-ink transition-colors placeholder:text-muted focus:border-action focus:outline-none focus:ring-2 focus:ring-action/25 motion-reduce:transition-none sm:text-sm";
 
 export const labelClass = "block text-sm font-medium text-body";
-export const helperTextClass = "mt-1 text-xs text-muted";
-export const fieldErrorClass = "mt-1 text-xs text-danger";
+export const helperTextClass = "mt-1 text-sm leading-5 text-muted";
+export const fieldErrorClass = "mt-1 text-sm leading-5 text-danger";
 
 export type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "ghost-danger";
 

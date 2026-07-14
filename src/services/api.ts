@@ -35,7 +35,9 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as RetriableRequestConfig | undefined;
     const isAuthEndpoint =
-      originalRequest?.url?.includes("/auth/login") || originalRequest?.url?.includes("/auth/refresh");
+      originalRequest?.url?.includes("/auth/login") ||
+      originalRequest?.url?.includes("/auth/convites") ||
+      originalRequest?.url?.includes("/auth/refresh");
 
     if (error.response?.status === 401 && originalRequest && !originalRequest._retry && !isAuthEndpoint) {
       originalRequest._retry = true;

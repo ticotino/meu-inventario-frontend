@@ -17,7 +17,7 @@ const LINKS: NavItem[] = [
   { to: "/fabricantes", label: "Fabricantes" },
 ];
 
-const ADMIN_LINKS: NavItem[] = [{ to: "/usuarios/novo", label: "Novo usuário" }];
+const ADMIN_LINKS: NavItem[] = [{ to: "/usuarios/novo", label: "Gerenciar acessos" }];
 
 interface SidebarProps {
   open: boolean;

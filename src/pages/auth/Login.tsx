@@ -1,10 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { z } from "zod";
+import { AuthShell } from "../../components/auth/AuthShell";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
+import { PasswordVisibilityButton } from "../../components/ui/PasswordVisibilityButton";
+import { SuccessBanner } from "../../components/ui/SuccessBanner";
 import { feedbackErrorClass } from "../../components/ui/formStyles";
 import { useAuth } from "../../hooks/useAuth";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
@@ -17,22 +20,41 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
+interface LoginLocationState {
+  cadastroConcluido?: boolean;
+  email?: string;
+}
+
 export function Login() {
   useDocumentTitle("Entrar");
   const { login } = useAuth();
+  const location = useLocation();
   const navigate = useNavigate();
+  const locationState = location.state as LoginLocationState | null;
   const [erro, setErro] = useState<string | null>(null);
+  const [sucesso] = useState<string | null>(() =>
+    locationState?.cadastroConcluido
+      ? "Conta criada com sucesso. Entre com suas credenciais."
+      : null,
+  );
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   const {
     register,
     handleSubmit,
     setFocus,
     formState: { errors, isSubmitting },
-  } = useForm<LoginForm>({ resolver: zodResolver(loginSchema) });
+  } = useForm<LoginForm>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: locationState?.email ?? "", senha: "" },
+    mode: "onBlur",
+    reValidateMode: "onChange",
+  });
 
   useEffect(() => {
     setFocus("email");
-  }, [setFocus]);
+    if (location.state) navigate("/login", { replace: true, state: null });
+  }, [location.state, navigate, setFocus]);
 
   async function onSubmit(dados: LoginForm) {
     setErro(null);
@@ -45,12 +67,20 @@ export function Login() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-page px-4 py-8">
-      <div className="w-full max-w-sm rounded-lg border border-border bg-surface p-8 shadow-card">
-        <h1 className="text-xl font-semibold text-ink">Meu Inventário</h1>
-        <p className="mt-1 text-sm text-muted">Entre com suas credenciais para continuar.</p>
+    <AuthShell
+      title="Meu Inventário"
+      description="Entre com suas credenciais para continuar."
+      context="login"
+    >
+      <div className="space-y-4">
+        {sucesso && <SuccessBanner>{sucesso}</SuccessBanner>}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-4" noValidate aria-busy={isSubmitting}>
+        <form
+          onSubmit={handleSubmit(onSubmit, (errors) => setFocus(errors.email ? "email" : "senha"))}
+          className="space-y-4"
+          noValidate
+          aria-busy={isSubmitting}
+        >
           <Input
             id="email"
             label="E-mail"
@@ -65,11 +95,17 @@ export function Login() {
           <Input
             id="senha"
             label="Senha"
-            type="password"
+            type={mostrarSenha ? "text" : "password"}
             autoComplete="current-password"
             required
             maxLength={128}
             error={errors.senha?.message}
+            endAdornment={
+              <PasswordVisibilityButton
+                visible={mostrarSenha}
+                onToggle={() => setMostrarSenha((visivel) => !visivel)}
+              />
+            }
             {...register("senha")}
           />
 
@@ -84,6 +120,6 @@ export function Login() {
           </Button>
         </form>
       </div>
-    </main>
+    </AuthShell>
   );
 }
