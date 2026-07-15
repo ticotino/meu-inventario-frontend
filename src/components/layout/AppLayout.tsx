@@ -14,12 +14,11 @@ export function AppLayout() {
     }
   });
   const menuButtonRef = useRef<HTMLButtonElement>(null);
-  const desktopToggleRef = useRef<HTMLButtonElement>(null);
+  const desktopFirstControlRef = useRef<HTMLButtonElement>(null);
   const mainRef = useRef<HTMLElement>(null);
   const openSidebar = useCallback(() => setSidebarOpen(true), []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
-  const toggleSidebarCollapsed = useCallback(() => setSidebarCollapsed((collapsed) => !collapsed), []);
-  const expandSidebar = useCallback(() => setSidebarCollapsed(false), []);
+  const changeSidebarCollapsed = useCallback((collapsed: boolean) => setSidebarCollapsed(collapsed), []);
 
   useEffect(() => {
     try {
@@ -43,17 +42,15 @@ export function AppLayout() {
         menuExpanded={sidebarOpen}
         menuButtonRef={menuButtonRef}
         sidebarCollapsed={sidebarCollapsed}
-        onToggleSidebar={toggleSidebarCollapsed}
-        desktopToggleRef={desktopToggleRef}
       />
       <div className="app-content relative flex min-h-0 min-w-0 overflow-hidden">
         <Sidebar
           open={sidebarOpen}
           collapsed={sidebarCollapsed}
+          onCollapsedChange={changeSidebarCollapsed}
           onClose={closeSidebar}
-          onExpand={expandSidebar}
           triggerRef={menuButtonRef}
-          desktopToggleRef={desktopToggleRef}
+          desktopFirstControlRef={desktopFirstControlRef}
         />
         <main
           ref={mainRef}

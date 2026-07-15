@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { LogOut, Menu, PackageCheck, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { LogOut, Menu, PackageCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -8,8 +8,6 @@ interface TopbarProps {
   menuExpanded: boolean;
   menuButtonRef: RefObject<HTMLButtonElement | null>;
   sidebarCollapsed: boolean;
-  onToggleSidebar: () => void;
-  desktopToggleRef: RefObject<HTMLButtonElement | null>;
 }
 
 export function Topbar({
@@ -17,8 +15,6 @@ export function Topbar({
   menuExpanded,
   menuButtonRef,
   sidebarCollapsed,
-  onToggleSidebar,
-  desktopToggleRef,
 }: TopbarProps) {
   const { usuario, logout } = useAuth();
 
@@ -70,25 +66,6 @@ export function Topbar({
           </span>
           {!sidebarCollapsed && <span className="truncate text-lg font-semibold">Meu Inventário</span>}
         </Link>
-      </div>
-
-      <div className="hidden items-center px-2 md:flex">
-        <button
-          ref={desktopToggleRef}
-          type="button"
-          onClick={onToggleSidebar}
-          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-body transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 motion-reduce:transition-none"
-          aria-label={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
-          aria-controls="desktop-sidebar"
-          aria-expanded={!sidebarCollapsed}
-          title={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
-        >
-          {sidebarCollapsed ? (
-            <PanelLeftOpen aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
-          ) : (
-            <PanelLeftClose aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
-          )}
-        </button>
       </div>
 
       <div className="ml-auto flex min-w-0 items-center gap-2 px-3 py-2 sm:gap-4 sm:px-4 md:px-6">
