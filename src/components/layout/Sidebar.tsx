@@ -8,9 +8,6 @@ import {
   ClipboardList,
   Factory,
   LayoutDashboard,
-  PackageCheck,
-  PanelLeftClose,
-  PanelLeftOpen,
   Search,
   ShoppingCart,
   Truck,
@@ -77,9 +74,9 @@ interface SidebarProps {
   open: boolean;
   collapsed: boolean;
   onClose: () => void;
-  onToggleCollapsed: () => void;
   onExpand: () => void;
   triggerRef: RefObject<HTMLButtonElement | null>;
+  desktopToggleRef: RefObject<HTMLButtonElement | null>;
 }
 
 interface SidebarContentProps {
@@ -92,7 +89,6 @@ interface SidebarContentProps {
   onSearchWhileCollapsed?: () => void;
   onNavigate?: () => void;
   onClose?: () => void;
-  onToggleCollapsed?: () => void;
   closeButtonRef?: RefObject<HTMLButtonElement | null>;
   searchInputRef?: RefObject<HTMLInputElement | null>;
 }
@@ -107,7 +103,6 @@ function SidebarContent({
   onSearchWhileCollapsed,
   onNavigate,
   onClose,
-  onToggleCollapsed,
   closeButtonRef,
   searchInputRef,
 }: SidebarContentProps) {
@@ -125,42 +120,11 @@ function SidebarContent({
 
   return (
     <>
-      <div
-        className={`flex min-h-16 shrink-0 items-center gap-2 px-3 py-2 ${collapsed ? "justify-center" : "justify-between"}`}
-      >
-        {collapsed ? (
-          <span id={titleId} className="sr-only">
-            Meu Inventário
-          </span>
-        ) : (
-          <div className="flex min-w-0 items-center gap-3 px-1">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-sidebar-hover text-sidebar-text-strong">
-              <PackageCheck aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
-            </span>
-            <span id={titleId} className="truncate text-lg font-semibold text-sidebar-text-strong">
-              Meu Inventário
-            </span>
-          </div>
-        )}
-
-        {onToggleCollapsed && (
-          <button
-            type="button"
-            onClick={onToggleCollapsed}
-            className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-sidebar-text transition-colors hover:bg-sidebar-hover hover:text-sidebar-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:transition-none"
-            aria-label={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
-            aria-expanded={!collapsed}
-            aria-controls="desktop-sidebar"
-          >
-            {collapsed ? (
-              <PanelLeftOpen aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
-            ) : (
-              <PanelLeftClose aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
-            )}
-          </button>
-        )}
-
-        {onClose && (
+      {onClose ? (
+        <div className="flex min-h-16 shrink-0 items-center justify-between gap-2 px-3 py-2">
+          <h2 id={titleId} className="px-1 text-base font-semibold text-sidebar-text-strong">
+            Navegação
+          </h2>
           <button
             ref={closeButtonRef}
             type="button"
@@ -170,8 +134,12 @@ function SidebarContent({
           >
             <X aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
           </button>
-        )}
-      </div>
+        </div>
+      ) : (
+        <h2 id={titleId} className="sr-only">
+          Navegação principal
+        </h2>
+      )}
 
       <div className={`shrink-0 px-3 pb-3 pt-1 ${collapsed ? "flex justify-center" : ""}`}>
         {collapsed ? (
@@ -266,7 +234,7 @@ function SidebarContent({
   );
 }
 
-export function Sidebar({ open, collapsed, onClose, onToggleCollapsed, onExpand, triggerRef }: SidebarProps) {
+export function Sidebar({ open, collapsed, onClose, onExpand, triggerRef, desktopToggleRef }: SidebarProps) {
   const { usuario } = useAuth();
   const groups = useMemo(
     () => (usuario?.papel === "admin" ? [...NAV_GROUPS, ADMIN_GROUP] : NAV_GROUPS),
@@ -330,10 +298,18 @@ export function Sidebar({ open, collapsed, onClose, onToggleCollapsed, onExpand,
     document.addEventListener("keydown", handleKeyDown);
 
     const mediaQuery = window.matchMedia("(min-width: 768px)");
+    function focusDesktopToggle() {
+      window.requestAnimationFrame(() => {
+        const focusTarget = desktopToggleRef.current ?? document.querySelector<HTMLElement>("main");
+        focusTarget?.focus();
+      });
+    }
+
     function handleViewportChange(event: MediaQueryListEvent) {
       if (event.matches) {
         shouldRestoreTriggerFocus = false;
         onClose();
+        focusDesktopToggle();
       }
     }
     mediaQuery.addEventListener("change", handleViewportChange);
@@ -341,6 +317,7 @@ export function Sidebar({ open, collapsed, onClose, onToggleCollapsed, onExpand,
     if (mediaQuery.matches) {
       shouldRestoreTriggerFocus = false;
       onClose();
+      focusDesktopToggle();
     }
 
     return () => {
@@ -349,14 +326,14 @@ export function Sidebar({ open, collapsed, onClose, onToggleCollapsed, onExpand,
       mediaQuery.removeEventListener("change", handleViewportChange);
       if (shouldRestoreTriggerFocus) triggerElement?.focus();
     };
-  }, [onClose, open, triggerRef]);
+  }, [desktopToggleRef, onClose, open, triggerRef]);
 
   return (
     <>
       <aside
         id="desktop-sidebar"
         aria-labelledby="desktop-sidebar-title"
-        className={`hidden shrink-0 flex-col bg-sidebar text-sidebar-text transition-[width] duration-200 ease-out md:flex motion-reduce:transition-none ${
+        className={`hidden h-full min-h-0 shrink-0 flex-col overflow-hidden bg-sidebar text-sidebar-text transition-[width] duration-200 ease-out md:flex motion-reduce:transition-none ${
           collapsed ? "w-[4.5rem]" : "w-64"
         }`}
       >
@@ -368,21 +345,24 @@ export function Sidebar({ open, collapsed, onClose, onToggleCollapsed, onExpand,
           collapsed={collapsed}
           onQueryChange={setQuery}
           onSearchWhileCollapsed={handleSearchWhileCollapsed}
-          onToggleCollapsed={onToggleCollapsed}
           searchInputRef={desktopSearchRef}
         />
       </aside>
 
       {open && (
         <>
-          <div className="fixed inset-0 z-20 bg-sidebar/40 md:hidden" onClick={onClose} aria-hidden="true" />
+          <div
+            className="absolute inset-0 z-20 bg-sidebar/40 md:hidden"
+            onClick={onClose}
+            aria-hidden="true"
+          />
           <aside
             ref={drawerRef}
             id="mobile-sidebar"
             role="dialog"
             aria-modal="true"
             aria-labelledby="mobile-sidebar-title"
-            className="mobile-sidebar fixed inset-y-0 left-0 z-30 flex w-64 max-w-[calc(100vw-3rem)] flex-col overflow-hidden bg-sidebar text-sidebar-text md:hidden"
+            className="mobile-sidebar absolute inset-y-0 left-0 z-30 flex w-64 max-w-[calc(100vw-3rem)] flex-col overflow-hidden bg-sidebar text-sidebar-text md:hidden"
           >
             <SidebarContent
               groups={groups}

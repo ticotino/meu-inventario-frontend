@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 
 export function AppLayout() {
+  const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
@@ -13,6 +14,8 @@ export function AppLayout() {
     }
   });
   const menuButtonRef = useRef<HTMLButtonElement>(null);
+  const desktopToggleRef = useRef<HTMLButtonElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
   const openSidebar = useCallback(() => setSidebarOpen(true), []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const toggleSidebarCollapsed = useCallback(() => setSidebarCollapsed((collapsed) => !collapsed), []);
@@ -26,29 +29,38 @@ export function AppLayout() {
     }
   }, [sidebarCollapsed]);
 
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [location.pathname]);
+
   return (
-    <div className="flex min-h-screen bg-page">
+    <div className="app-shell grid h-dvh min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-page">
       <a href="#conteudo-principal" className="skip-link">
         Pular para o conteúdo
       </a>
-      <Sidebar
-        open={sidebarOpen}
-        collapsed={sidebarCollapsed}
-        onClose={closeSidebar}
-        onToggleCollapsed={toggleSidebarCollapsed}
-        onExpand={expandSidebar}
-        triggerRef={menuButtonRef}
+      <Topbar
+        onMenuClick={openSidebar}
+        menuExpanded={sidebarOpen}
+        menuButtonRef={menuButtonRef}
+        sidebarCollapsed={sidebarCollapsed}
+        onToggleSidebar={toggleSidebarCollapsed}
+        desktopToggleRef={desktopToggleRef}
       />
-      <div className="flex min-w-0 flex-1 flex-col">
-        <Topbar
-          onMenuClick={openSidebar}
-          menuExpanded={sidebarOpen}
-          menuButtonRef={menuButtonRef}
+      <div className="app-content relative flex min-h-0 min-w-0 overflow-hidden">
+        <Sidebar
+          open={sidebarOpen}
+          collapsed={sidebarCollapsed}
+          onClose={closeSidebar}
+          onExpand={expandSidebar}
+          triggerRef={menuButtonRef}
+          desktopToggleRef={desktopToggleRef}
         />
         <main
+          ref={mainRef}
           id="conteudo-principal"
           tabIndex={-1}
-          className="min-w-0 flex-1 p-4 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-action md:p-6"
+          inert={sidebarOpen}
+          className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain p-4 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-action md:p-6"
         >
           <Outlet />
         </main>
