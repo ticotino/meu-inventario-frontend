@@ -1,12 +1,19 @@
 import { Link, useParams } from "react-router-dom";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { ResponsiveTable } from "../../components/ui/ResponsiveTable";
 import type { Coluna } from "../../components/ui/ResponsiveTable";
+import { TableSkeleton } from "../../components/ui/TableSkeleton";
+import { buttonClasses } from "../../components/ui/formStyles";
+import { useBeneficiamentos } from "../../hooks/useBeneficiamentos";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { useProducao } from "../../hooks/useProducoes";
 import { getApiErrorMessage } from "../../services/api";
+import type { Beneficiamento } from "../../types/beneficiamento";
 import type { ProducaoItem } from "../../types/producao";
+import { STATUS_BENEFICIAMENTO_CLASS, STATUS_BENEFICIAMENTO_LABEL } from "../beneficiamento/statusBeneficiamento";
+import { TIPO_BENEFICIAMENTO_LABEL } from "../beneficiamento/tipoBeneficiamento";
 import { formatarData, formatarQuantidade } from "../../utils/format";
 
 function ResumoItem({ rotulo, valor, destaque = false }: { rotulo: string; valor: React.ReactNode; destaque?: boolean }) {
@@ -37,6 +44,97 @@ function DetalheSkeleton() {
         </div>
       ))}
       <span className="sr-only">Carregando...</span>
+    </div>
+  );
+}
+
+function BeneficiamentoSecao({ producaoId }: { producaoId: string }) {
+  const { data: beneficiamentos, isPending, isError, error, refetch } = useBeneficiamentos({ producaoId });
+
+  const colunasBeneficiamento: Coluna<Beneficiamento>[] = [
+    {
+      header: "Código",
+      cell: (b) => (
+        <Link to={`/beneficiamento/${b.id}`} className="font-medium tabular-nums text-action hover:underline">
+          {b.codigo}
+        </Link>
+      ),
+    },
+    { header: "Prestador", cell: (b) => b.prestador_nome },
+    { header: "Tipo", cell: (b) => TIPO_BENEFICIAMENTO_LABEL[b.tipo] },
+    {
+      header: "Status",
+      cell: (b) => (
+        <span className={STATUS_BENEFICIAMENTO_CLASS[b.status]}>{STATUS_BENEFICIAMENTO_LABEL[b.status]}</span>
+      ),
+    },
+    {
+      header: "Qtd. enviada",
+      alignRight: true,
+      cell: (b) => <span className="tabular-nums">{formatarQuantidade(b.quantidade_enviada, "unidade")}</span>,
+    },
+    {
+      header: "Qtd. recebida",
+      alignRight: true,
+      cell: (b) =>
+        b.quantidade_recebida !== null ? (
+          <span className="tabular-nums">{formatarQuantidade(b.quantidade_recebida, "unidade")}</span>
+        ) : (
+          "—"
+        ),
+    },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-sm font-medium text-ink">Beneficiamento</h2>
+        <Link to={`/beneficiamento/novo?producao=${producaoId}`} className={buttonClasses("secondary")}>
+          Enviar para beneficiamento
+        </Link>
+      </div>
+
+      {isPending ? (
+        <TableSkeleton linhas={2} />
+      ) : isError ? (
+        <ErrorState
+          mensagem={getApiErrorMessage(error, "Não foi possível carregar o beneficiamento desta produção.")}
+          onRetry={() => void refetch()}
+        />
+      ) : beneficiamentos.length === 0 ? (
+        <EmptyState
+          titulo="Nenhum beneficiamento enviado ainda"
+          descricao="Envie peças desta produção para costura externa, silk ou bordado."
+          action={
+            <Link to={`/beneficiamento/novo?producao=${producaoId}`} className={buttonClasses("primary")}>
+              Enviar para beneficiamento
+            </Link>
+          }
+        />
+      ) : (
+        <ResponsiveTable
+          items={beneficiamentos}
+          columns={colunasBeneficiamento}
+          getRowKey={(b) => b.id}
+          caption="Beneficiamentos vinculados a esta produção"
+          mobileCard={(b) => (
+            <div className="space-y-1">
+              <p className="font-medium text-ink">
+                <span className="tabular-nums">{b.codigo}</span> · {b.prestador_nome}
+              </p>
+              <p className="text-sm text-body">
+                {TIPO_BENEFICIAMENTO_LABEL[b.tipo]} ·{" "}
+                <span className={STATUS_BENEFICIAMENTO_CLASS[b.status]}>{STATUS_BENEFICIAMENTO_LABEL[b.status]}</span>
+              </p>
+              <div className="pt-1">
+                <Link to={`/beneficiamento/${b.id}`} className="text-sm font-medium text-action hover:underline">
+                  Detalhes
+                </Link>
+              </div>
+            </div>
+          )}
+        />
+      )}
     </div>
   );
 }
@@ -141,6 +239,8 @@ export function ProducaoDetalhe() {
           )}
         />
       </div>
+
+      <BeneficiamentoSecao producaoId={producao.id} />
     </div>
   );
 }

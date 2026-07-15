@@ -53,6 +53,20 @@ const NovoProduto = lazy(() =>
 const ProdutoDetalhe = lazy(() =>
   import("./pages/producao/ProdutoDetalhe").then((module) => ({ default: module.ProdutoDetalhe })),
 );
+const Beneficiamentos = lazy(() =>
+  import("./pages/beneficiamento/Beneficiamentos").then((module) => ({ default: module.Beneficiamentos })),
+);
+const NovoBeneficiamento = lazy(() =>
+  import("./pages/beneficiamento/NovoBeneficiamento").then((module) => ({ default: module.NovoBeneficiamento })),
+);
+const BeneficiamentoDetalhe = lazy(() =>
+  import("./pages/beneficiamento/BeneficiamentoDetalhe").then((module) => ({
+    default: module.BeneficiamentoDetalhe,
+  })),
+);
+const Prestadores = lazy(() =>
+  import("./pages/prestadores/Prestadores").then((module) => ({ default: module.Prestadores })),
+);
 const Pedidos = lazy(() => import("./pages/pedidos/Pedidos").then((module) => ({ default: module.Pedidos })));
 const NovoPedido = lazy(() =>
   import("./pages/pedidos/NovoPedido").then((module) => ({ default: module.NovoPedido })),
@@ -119,6 +133,10 @@ export default function App() {
                 <Route path="/producao/produtos/novo" element={<NovoProduto />} />
                 <Route path="/producao/produtos/:id" element={<ProdutoDetalhe />} />
                 <Route path="/producao/:id" element={<ProducaoDetalhe />} />
+                <Route path="/beneficiamento" element={<Beneficiamentos />} />
+                <Route path="/beneficiamento/novo" element={<NovoBeneficiamento />} />
+                <Route path="/beneficiamento/prestadores" element={<Prestadores />} />
+                <Route path="/beneficiamento/:id" element={<BeneficiamentoDetalhe />} />
                 <Route path="/pedidos" element={<Pedidos />} />
                 <Route path="/pedidos/novo" element={<NovoPedido />} />
                 <Route path="/pedidos/clientes" element={<Clientes />} />

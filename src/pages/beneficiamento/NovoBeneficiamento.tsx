@@ -1,0 +1,276 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useState } from "react";
+import { useForm, useWatch } from "react-hook-form";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Button } from "../../components/ui/Button";
+import { Input } from "../../components/ui/Input";
+import { PageHeader } from "../../components/ui/PageHeader";
+import { Select } from "../../components/ui/Select";
+import { Textarea } from "../../components/ui/Textarea";
+import { feedbackErrorClass } from "../../components/ui/formStyles";
+import { useCreateBeneficiamento } from "../../hooks/useBeneficiamentos";
+import { useDocumentTitle } from "../../hooks/useDocumentTitle";
+import { usePrestadores } from "../../hooks/usePrestadores";
+import { useProducao, useProducoes } from "../../hooks/useProducoes";
+import { getApiErrorMessage } from "../../services/api";
+import { TIPOS_BENEFICIAMENTO } from "../../types/beneficiamento";
+import type { TipoBeneficiamento } from "../../types/beneficiamento";
+import { formatarQuantidade } from "../../utils/format";
+import { quantidadeEnviadaValida } from "./beneficiamentoValidacao";
+import { novoBeneficiamentoSchema } from "./novoBeneficiamentoSchema";
+import type { NovoBeneficiamentoForm } from "./novoBeneficiamentoSchema";
+import { TIPO_BENEFICIAMENTO_LABEL } from "./tipoBeneficiamento";
+
+function hoje(): string {
+  const agora = new Date();
+  const ano = agora.getFullYear();
+  const mes = String(agora.getMonth() + 1).padStart(2, "0");
+  const dia = String(agora.getDate()).padStart(2, "0");
+  return `${ano}-${mes}-${dia}`;
+}
+
+export function NovoBeneficiamento() {
+  useDocumentTitle("Enviar para beneficiamento");
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [erro, setErro] = useState<string | null>(null);
+  const [producaoId, setProducaoId] = useState(searchParams.get("producao") ?? "");
+
+  const { data: producoes, isPending: carregandoProducoes } = useProducoes({});
+  const { data: producao, isPending: carregandoProducao } = useProducao(producaoId || undefined);
+  const { data: prestadores, isPending: carregandoPrestadores } = usePrestadores();
+  const criar = useCreateBeneficiamento();
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<NovoBeneficiamentoForm>({
+    resolver: zodResolver(novoBeneficiamentoSchema),
+    defaultValues: {
+      producao_id: producaoId,
+      prestador_id: "",
+      tipo: undefined,
+      quantidade_enviada: "",
+      data_envio: hoje(),
+      data_recebimento_prevista: "",
+      valor_cobrado: "",
+      nota_fiscal: "",
+      observacoes: "",
+    },
+  });
+
+  const tipoEscolhido = useWatch({ control, name: "tipo" });
+  const prestadoresDoTipo = prestadores?.filter((p) => !tipoEscolhido || p.tipos_servico.includes(tipoEscolhido));
+
+  const semProducoes = !carregandoProducoes && (producoes?.length ?? 0) === 0;
+  const semPrestadores = !carregandoPrestadores && (prestadores?.length ?? 0) === 0;
+
+  async function onSubmit(dados: NovoBeneficiamentoForm) {
+    setErro(null);
+
+    // Checagem client-side contra o que a produção gerou; o backend
+    // continua sendo a fonte da verdade.
+    if (producao && !quantidadeEnviadaValida(Number(dados.quantidade_enviada), Number(producao.quantidade_produzida))) {
+      setError("quantidade_enviada", {
+        message: `Disponível: ${formatarQuantidade(producao.quantidade_produzida, "unidade")}`,
+      });
+      return;
+    }
+
+    try {
+      const criado = await criar.mutateAsync({
+        producao_id: dados.producao_id,
+        prestador_id: dados.prestador_id,
+        tipo: dados.tipo,
+        quantidade_enviada: Number(dados.quantidade_enviada),
+        data_envio: dados.data_envio,
+        data_recebimento_prevista: dados.data_recebimento_prevista || undefined,
+        valor_cobrado: dados.valor_cobrado ? Number(dados.valor_cobrado) : undefined,
+        nota_fiscal: dados.nota_fiscal || undefined,
+        observacoes: dados.observacoes || undefined,
+      });
+      navigate(`/beneficiamento/${criado.id}`);
+    } catch (error) {
+      setErro(getApiErrorMessage(error, "Não foi possível registrar o beneficiamento."));
+    }
+  }
+
+  return (
+    <div>
+      <PageHeader
+        titulo="Enviar para beneficiamento"
+        descricao="Registre o envio de peças de uma produção para costura externa, silk ou bordado."
+        action={
+          <Link to="/beneficiamento" className="text-sm font-medium text-action hover:underline">
+            Voltar ao registro
+          </Link>
+        }
+      />
+
+      <div className="mt-6 max-w-2xl rounded-lg border border-border bg-surface p-5 shadow-card">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate aria-busy={isSubmitting}>
+          <Select
+            id="beneficiamento-producao"
+            label="Produção"
+            required
+            disabled={semProducoes}
+            error={errors.producao_id?.message}
+            hint={
+              semProducoes ? (
+                <>
+                  Nenhuma produção registrada.{" "}
+                  <Link to="/producao/nova" className="font-medium text-action hover:underline">
+                    Registre uma produção
+                  </Link>{" "}
+                  antes de enviar para beneficiamento.
+                </>
+              ) : undefined
+            }
+            value={producaoId}
+            {...register("producao_id", {
+              onChange: (event) => setProducaoId(event.target.value),
+            })}
+          >
+            <option value="" disabled>
+              {carregandoProducoes ? "Carregando..." : "Selecione..."}
+            </option>
+            {producoes?.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.codigo} · {p.produto_nome}
+              </option>
+            ))}
+          </Select>
+
+          {producaoId && carregandoProducao && <p className="text-sm text-muted">Carregando dados da produção...</p>}
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Select
+              id="beneficiamento-tipo"
+              label="Tipo"
+              required
+              error={errors.tipo?.message}
+              {...register("tipo")}
+            >
+              <option value="" disabled>
+                Selecione...
+              </option>
+              {TIPOS_BENEFICIAMENTO.map((tipo: TipoBeneficiamento) => (
+                <option key={tipo} value={tipo}>
+                  {TIPO_BENEFICIAMENTO_LABEL[tipo]}
+                </option>
+              ))}
+            </Select>
+
+            <Select
+              id="beneficiamento-prestador"
+              label="Prestador"
+              required
+              disabled={semPrestadores}
+              error={errors.prestador_id?.message}
+              hint={
+                semPrestadores ? (
+                  <>
+                    Nenhum prestador cadastrado.{" "}
+                    <Link to="/beneficiamento/prestadores" className="font-medium text-action hover:underline">
+                      Cadastre um prestador
+                    </Link>
+                    .
+                  </>
+                ) : undefined
+              }
+              {...register("prestador_id")}
+            >
+              <option value="" disabled>
+                {carregandoPrestadores ? "Carregando..." : "Selecione..."}
+              </option>
+              {prestadoresDoTipo?.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nome}
+                </option>
+              ))}
+            </Select>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              id="beneficiamento-quantidade"
+              label="Quantidade enviada"
+              type="number"
+              step="0.001"
+              min="0"
+              inputMode="decimal"
+              required
+              hint={
+                producao ? `Disponível: ${formatarQuantidade(producao.quantidade_produzida, "unidade")}` : undefined
+              }
+              error={errors.quantidade_enviada?.message}
+              {...register("quantidade_enviada")}
+            />
+            <Input
+              id="beneficiamento-data-envio"
+              label="Data de envio"
+              type="date"
+              required
+              error={errors.data_envio?.message}
+              {...register("data_envio")}
+            />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              id="beneficiamento-data-recebimento-prevista"
+              label="Recebimento previsto"
+              type="date"
+              hint="Opcional."
+              error={errors.data_recebimento_prevista?.message}
+              {...register("data_recebimento_prevista")}
+            />
+            <Input
+              id="beneficiamento-valor-cobrado"
+              label="Valor cobrado"
+              type="number"
+              step="0.01"
+              min="0"
+              inputMode="decimal"
+              hint="Custo do serviço terceirizado — opcional, pode ser preenchido depois."
+              error={errors.valor_cobrado?.message}
+              {...register("valor_cobrado")}
+            />
+          </div>
+
+          <Input
+            id="beneficiamento-nota-fiscal"
+            label="Nota fiscal"
+            type="text"
+            maxLength={60}
+            hint="Opcional."
+            error={errors.nota_fiscal?.message}
+            {...register("nota_fiscal")}
+          />
+
+          <Textarea
+            id="beneficiamento-observacoes"
+            label="Observações"
+            maxLength={1000}
+            hint="Opcional."
+            error={errors.observacoes?.message}
+            {...register("observacoes")}
+          />
+
+          {erro && (
+            <p role="alert" className={feedbackErrorClass}>
+              {erro}
+            </p>
+          )}
+
+          <Button type="submit" loading={isSubmitting} loadingText="Registrando..." disabled={semProducoes || semPrestadores}>
+            Enviar para beneficiamento
+          </Button>
+        </form>
+      </div>
+    </div>
+  );
+}
