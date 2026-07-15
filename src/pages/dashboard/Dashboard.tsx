@@ -43,7 +43,11 @@ export function Dashboard() {
         Confira as pendências mais importantes antes de voltar à operação.
       </p>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <section aria-labelledby="dashboard-pendencias" className="mt-6">
+        <h2 id="dashboard-pendencias" className="text-base font-semibold text-ink">
+          Pendências
+        </h2>
+        <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Tile
           titulo="Estoque baixo"
           valor={metricas ? String(metricas.estoque_baixo_total) : "—"}
@@ -61,11 +65,26 @@ export function Dashboard() {
           link={{ to: "/pedidos?prazo=atrasado", label: "Ver pedidos" }}
         />
         <Tile
-          titulo="Produções recentes"
-          valor={metricas ? String(metricas.producoes_recentes) : "—"}
-          legenda="últimos 7 dias"
+          titulo="Compras solicitadas"
+          valor={metricas ? String(metricas.compras_pendentes) : "—"}
+          legenda="aguardando recebimento"
+          link={{ to: "/compras", label: "Ver lista de compras" }}
         />
-      </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="dashboard-atividade" className="mt-6 max-w-md">
+        <h2 id="dashboard-atividade" className="text-base font-semibold text-ink">
+          Atividade recente
+        </h2>
+        <div className="mt-3">
+          <Tile
+            titulo="Produções registradas"
+            valor={metricas ? String(metricas.producoes_recentes) : "—"}
+            legenda="últimos 7 dias"
+          />
+        </div>
+      </section>
     </div>
   );
 }

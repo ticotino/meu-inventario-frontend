@@ -28,6 +28,7 @@ export function useCreateProducao() {
       void queryClient.invalidateQueries({ queryKey: ["produtos"] });
       void queryClient.invalidateQueries({ queryKey: ["materias-primas"] });
       void queryClient.invalidateQueries({ queryKey: ["movimentacoes-estoque"] });
+      void queryClient.invalidateQueries({ queryKey: ["compras"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });

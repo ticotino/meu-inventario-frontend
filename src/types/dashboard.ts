@@ -6,4 +6,5 @@ export interface DashboardMetricas {
   materias_primas_estoque_baixo: number;
   produtos_estoque_baixo: number;
   estoque_baixo_total: number;
+  compras_pendentes: number;
 }

@@ -44,7 +44,18 @@ Use essas credenciais para o primeiro login. Se a tela de login não aceitar nen
 
 ## Criando novos usuários
 
-Usuários com papel `admin` têm acesso ao item **"Novo usuário"** na barra lateral (`/usuarios/novo`), onde é possível cadastrar novos administradores ou funcionários informando nome, e-mail, senha e papel. Essa tela chama o endpoint `POST /usuarios` do backend, que exige um token de administrador — por isso não existe cadastro público/self-service, apenas um admin já autenticado pode criar outros usuários.
+Usuários com papel `admin` acessam **Gerenciar acessos** em `/usuarios/novo`. Nessa tela podem criar outro administrador diretamente ou gerar um convite individual de administrador ou funcionário. O convidado abre `/cadastro/:token`, confirma os dados e define a senha; o papel vem do convite armazenado no servidor e não pode ser alterado pelo formulário público.
+
+O login lembra somente nome e e-mail da última conta usada no dispositivo. Senhas e tokens nunca são guardados nesse recurso.
+
+## Recursos principais
+
+- alertas de estoque mínimo para matérias-primas e produtos, com indicadores no dashboard;
+- prazos e situação de pedidos, incluindo atrasados, vencendo hoje e próximos;
+- histórico filtrável e paginado de movimentações de estoque;
+- impressão A4 de pedidos e romaneios com a opção nativa **Salvar como PDF**;
+- solicitações de compra derivadas das matérias-primas com estoque baixo, com recebimento auditado;
+- relatórios tabulares de consumo, produção e produtos faturados por período.
 
 ## Scripts
 
@@ -61,7 +72,7 @@ src/
   components/ui/        # componentes de UI genéricos (ex.: EmBreve, placeholder de seções futuras)
   contexts/AuthContext   # estado de sessão (usuário logado, login/logout)
   pages/auth/Login       # tela de login
-  pages/usuarios/        # cadastro de novos usuários (admin only)
+  pages/usuarios/        # gestão de administradores e convites (admin only)
   pages/dashboard/       # dashboard inicial
   routes/                # guards de rota (ProtectedRoute exige login, RequireAdmin exige papel admin)
   services/              # chamadas HTTP (api.ts com interceptors de token/refresh, authService, usuariosService)
