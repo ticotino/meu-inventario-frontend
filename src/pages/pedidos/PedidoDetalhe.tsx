@@ -4,6 +4,7 @@ import { Button } from "../../components/ui/Button";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { Input } from "../../components/ui/Input";
 import { PageHeader } from "../../components/ui/PageHeader";
+import { PrintButton } from "../../components/ui/PrintButton";
 import { ResponsiveTable } from "../../components/ui/ResponsiveTable";
 import type { Coluna } from "../../components/ui/ResponsiveTable";
 import { buttonClasses, feedbackErrorClass } from "../../components/ui/formStyles";
@@ -20,11 +21,23 @@ import type { PedidoItem } from "../../types/pedido";
 import { formatarData, formatarDataHora, formatarQuantidade } from "../../utils/format";
 import { STATUS_PEDIDO_CLASS, STATUS_PEDIDO_LABEL } from "./statusPedido";
 
-function ResumoItem({ rotulo, valor, destaque = false }: { rotulo: string; valor: React.ReactNode; destaque?: boolean }) {
+function ResumoItem({
+  rotulo,
+  valor,
+  destaque = false,
+}: {
+  rotulo: string;
+  valor: React.ReactNode;
+  destaque?: boolean;
+}) {
   return (
     <div>
       <dt className="text-xs text-muted">{rotulo}</dt>
-      <dd className={destaque ? "mt-0.5 text-2xl font-semibold tabular-nums text-ink" : "mt-0.5 text-sm text-body"}>
+      <dd
+        className={
+          destaque ? "mt-0.5 text-2xl font-semibold tabular-nums text-ink" : "mt-0.5 text-sm text-body"
+        }
+      >
         {valor}
       </dd>
     </div>
@@ -99,7 +112,9 @@ function PrazoPedido({
             {dataPrevistaEntrega ? formatarData(dataPrevistaEntrega) : "Sem prazo cadastrado"}
           </dd>
           {editavel && situacaoPrazo !== "sem_prazo" && (
-            <p className={`mt-0.5 text-xs ${situacaoPrazo === "atrasado" ? "font-medium text-danger" : "text-muted"}`}>
+            <p
+              className={`mt-0.5 text-xs ${situacaoPrazo === "atrasado" ? "font-medium text-danger" : "text-muted"}`}
+            >
               {situacaoPrazo === "atrasado"
                 ? `${Math.abs(diasParaEntrega ?? 0)} dia(s) em atraso`
                 : situacaoPrazo === "vence_hoje"
@@ -109,7 +124,7 @@ function PrazoPedido({
           )}
         </div>
         {editavel && (
-          <Button variant="ghost" className="min-h-11" onClick={() => setEditando(true)}>
+          <Button variant="ghost" className="min-h-11" data-print-hidden onClick={() => setEditando(true)}>
             Alterar prazo
           </Button>
         )}
@@ -118,7 +133,7 @@ function PrazoPedido({
   }
 
   return (
-    <div className="col-span-2 space-y-2 sm:col-span-3">
+    <div className="col-span-2 space-y-2 sm:col-span-3" data-print-hidden>
       <div className="flex flex-wrap items-end gap-2">
         <div className="w-52">
           <Input
@@ -178,7 +193,7 @@ function AcoesStatus({ pedidoId, status }: { pedidoId: string; status: string })
   if (status !== "pendente" && status !== "atendido") return null;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-print-hidden>
       <div className="flex flex-wrap items-center gap-2">
         {status === "pendente" && (
           <>
@@ -208,14 +223,22 @@ function AcoesStatus({ pedidoId, status }: { pedidoId: string; status: string })
                 </Button>
               </span>
             ) : (
-              <Button variant="secondary" onClick={() => setConfirmandoAtender(true)} disabled={cancelar.isPending}>
+              <Button
+                variant="secondary"
+                onClick={() => setConfirmandoAtender(true)}
+                disabled={cancelar.isPending}
+              >
                 Marcar como atendido
               </Button>
             )}
           </>
         )}
         {status === "atendido" && (
-          <Button onClick={() => void executar("faturar")} loading={faturar.isPending} loadingText="Marcando...">
+          <Button
+            onClick={() => void executar("faturar")}
+            loading={faturar.isPending}
+            loadingText="Marcando..."
+          >
             Marcar como faturado
           </Button>
         )}
@@ -243,7 +266,11 @@ function AcoesStatus({ pedidoId, status }: { pedidoId: string; status: string })
               </Button>
             </span>
           ) : (
-            <Button variant="ghost-danger" onClick={() => setConfirmandoCancelar(true)} disabled={atender.isPending}>
+            <Button
+              variant="ghost-danger"
+              onClick={() => setConfirmandoCancelar(true)}
+              disabled={atender.isPending}
+            >
               Cancelar pedido
             </Button>
           ))}
@@ -291,23 +318,28 @@ export function PedidoDetalhe() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-print-document>
       <PageHeader
         titulo={pedido.codigo}
         descricao={`Pedido de ${pedido.cliente_nome} em ${formatarData(pedido.data_pedido)}`}
         action={
-          <Link to="/pedidos" className="text-sm font-medium text-action hover:underline">
-            Voltar ao registro
-          </Link>
+          <div className="flex flex-wrap items-center gap-3" data-print-hidden>
+            <PrintButton />
+            <Link to="/pedidos" className="text-sm font-medium text-action hover:underline">
+              Voltar ao registro
+            </Link>
+          </div>
         }
       />
 
-      <div className="rounded-lg border border-border bg-surface p-5 shadow-card">
+      <div className="print-section rounded-lg border border-border bg-surface p-5 shadow-card">
         <h2 className="text-sm font-medium text-ink">Resumo</h2>
         <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
           <ResumoItem
             rotulo="Status"
-            valor={<span className={STATUS_PEDIDO_CLASS[pedido.status]}>{STATUS_PEDIDO_LABEL[pedido.status]}</span>}
+            valor={
+              <span className={STATUS_PEDIDO_CLASS[pedido.status]}>{STATUS_PEDIDO_LABEL[pedido.status]}</span>
+            }
             destaque
           />
           <ResumoItem rotulo="Cliente" valor={pedido.cliente_nome} />
@@ -321,14 +353,23 @@ export function PedidoDetalhe() {
             editavel={pedido.status === "pendente"}
           />
           <ResumoItem rotulo="Registrado por" valor={pedido.usuario_nome} />
-          {pedido.atendido_em && <ResumoItem rotulo="Atendido em" valor={formatarDataHora(pedido.atendido_em)} />}
-          {pedido.faturado_em && <ResumoItem rotulo="Faturado em" valor={formatarDataHora(pedido.faturado_em)} />}
-          {pedido.cancelado_em && <ResumoItem rotulo="Cancelado em" valor={formatarDataHora(pedido.cancelado_em)} />}
+          {pedido.atendido_em && (
+            <ResumoItem rotulo="Atendido em" valor={formatarDataHora(pedido.atendido_em)} />
+          )}
+          {pedido.faturado_em && (
+            <ResumoItem rotulo="Faturado em" valor={formatarDataHora(pedido.faturado_em)} />
+          )}
+          {pedido.cancelado_em && (
+            <ResumoItem rotulo="Cancelado em" valor={formatarDataHora(pedido.cancelado_em)} />
+          )}
           {pedido.romaneio_id && (
             <ResumoItem
               rotulo="Romaneio"
               valor={
-                <Link to={`/romaneios/${pedido.romaneio_id}`} className="font-medium tabular-nums text-action hover:underline">
+                <Link
+                  to={`/romaneios/${pedido.romaneio_id}`}
+                  className="font-medium tabular-nums text-action hover:underline"
+                >
                   {pedido.romaneio_codigo}
                 </Link>
               }
@@ -345,7 +386,7 @@ export function PedidoDetalhe() {
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="print-section space-y-3">
         <h2 className="text-sm font-medium text-ink">Itens</h2>
         <ResponsiveTable
           items={pedido.itens}
@@ -357,7 +398,9 @@ export function PedidoDetalhe() {
               <p className="font-medium text-ink">
                 <span className="tabular-nums">{item.codigo}</span> · {item.nome}
               </p>
-              <p className="text-sm text-body tabular-nums">{formatarQuantidade(item.quantidade, "unidade")}</p>
+              <p className="text-sm text-body tabular-nums">
+                {formatarQuantidade(item.quantidade, "unidade")}
+              </p>
             </div>
           )}
         />

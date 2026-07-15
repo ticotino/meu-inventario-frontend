@@ -11,6 +11,7 @@ interface NavItem {
 const LINKS: NavItem[] = [
   { to: "/", label: "Dashboard" },
   { to: "/materias-primas", label: "Matérias-primas" },
+  { to: "/movimentacoes", label: "Movimentações" },
   { to: "/producao", label: "Produção" },
   { to: "/pedidos", label: "Pedidos" },
   { to: "/romaneios", label: "Romaneios" },

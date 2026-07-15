@@ -1,17 +1,30 @@
 import { Link, useParams } from "react-router-dom";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { PageHeader } from "../../components/ui/PageHeader";
+import { PrintButton } from "../../components/ui/PrintButton";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { useRomaneio } from "../../hooks/useRomaneios";
 import { getApiErrorMessage } from "../../services/api";
 import type { RomaneioItem } from "../../types/romaneio";
 import { formatarData, formatarQuantidade } from "../../utils/format";
 
-function ResumoItem({ rotulo, valor, destaque = false }: { rotulo: string; valor: React.ReactNode; destaque?: boolean }) {
+function ResumoItem({
+  rotulo,
+  valor,
+  destaque = false,
+}: {
+  rotulo: string;
+  valor: React.ReactNode;
+  destaque?: boolean;
+}) {
   return (
     <div>
       <dt className="text-xs text-muted">{rotulo}</dt>
-      <dd className={destaque ? "mt-0.5 text-2xl font-semibold tabular-nums text-ink" : "mt-0.5 text-sm text-body"}>
+      <dd
+        className={
+          destaque ? "mt-0.5 text-2xl font-semibold tabular-nums text-ink" : "mt-0.5 text-sm text-body"
+        }
+      >
         {valor}
       </dd>
     </div>
@@ -54,7 +67,7 @@ function expandirCaixas(item: RomaneioItem): string[] {
 function ItemRomaneio({ item, inicioNumeracao }: { item: RomaneioItem; inicioNumeracao: number }) {
   const caixas = expandirCaixas(item);
   return (
-    <div className="rounded-lg border border-border bg-surface p-5 shadow-card">
+    <div className="print-item rounded-lg border border-border bg-surface p-5 shadow-card">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <h3 className="text-sm font-medium text-ink">
           <span className="tabular-nums">{item.codigo}</span> · {item.nome}
@@ -110,18 +123,21 @@ export function RomaneioDetalhe() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-print-document>
       <PageHeader
         titulo={romaneio.codigo}
         descricao={`Expedição do pedido ${romaneio.pedido_codigo} em ${formatarData(romaneio.data_saida)}`}
         action={
-          <Link to="/romaneios" className="text-sm font-medium text-action hover:underline">
-            Voltar aos romaneios
-          </Link>
+          <div className="flex flex-wrap items-center gap-3" data-print-hidden>
+            <PrintButton />
+            <Link to="/romaneios" className="text-sm font-medium text-action hover:underline">
+              Voltar aos romaneios
+            </Link>
+          </div>
         }
       />
 
-      <div className="rounded-lg border border-border bg-surface p-5 shadow-card">
+      <div className="print-section rounded-lg border border-border bg-surface p-5 shadow-card">
         <h2 className="text-sm font-medium text-ink">Resumo</h2>
         <dl className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3">
           <ResumoItem rotulo="Volumes" valor={romaneio.volumes_total} destaque />
@@ -142,7 +158,7 @@ export function RomaneioDetalhe() {
         </p>
       </div>
 
-      <div className="space-y-3">
+      <div className="print-section space-y-3">
         <h2 className="text-sm font-medium text-ink">Itens e caixas</h2>
         {itensNumerados.map(({ item, inicio }) => (
           <ItemRomaneio key={item.produto_id} item={item} inicioNumeracao={inicio} />

@@ -30,6 +30,7 @@ function useInvalidateProdutos() {
   const queryClient = useQueryClient();
   return () => {
     void queryClient.invalidateQueries({ queryKey: ["produtos"] });
+    void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     // produto_nome aparece na listagem de produções
     void queryClient.invalidateQueries({ queryKey: ["producoes"] });
   };

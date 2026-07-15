@@ -34,6 +34,7 @@ export function useCreatePedido() {
       // O pedido consome saldo dos produtos na criação, além das métricas.
       void queryClient.invalidateQueries({ queryKey: ["pedidos"] });
       void queryClient.invalidateQueries({ queryKey: ["produtos"] });
+      void queryClient.invalidateQueries({ queryKey: ["movimentacoes-estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
@@ -47,6 +48,7 @@ export function useCancelarPedido() {
       // Cancelar devolve o saldo consumido pelo pedido.
       void queryClient.invalidateQueries({ queryKey: ["pedidos"] });
       void queryClient.invalidateQueries({ queryKey: ["produtos"] });
+      void queryClient.invalidateQueries({ queryKey: ["movimentacoes-estoque"] });
       void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });

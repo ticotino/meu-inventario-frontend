@@ -203,9 +203,17 @@ export function MateriaPrimaDetalhe() {
         titulo={materiaPrima.codigo}
         descricao={`${materiaPrima.nome_tecido}${materiaPrima.cor ? ` (${materiaPrima.cor})` : ""} — ${materiaPrima.fabricante_nome}${materiaPrima.ativo ? "" : " · Inativa"}`}
         action={
-          <Link to="/materias-primas" className="text-sm font-medium text-action hover:underline">
-            Voltar à lista
-          </Link>
+          <div className="flex flex-wrap items-center gap-4">
+            <Link
+              to={`/movimentacoes?item_tipo=materia_prima&item_id=${materiaPrima.id}`}
+              className="text-sm font-medium text-action hover:underline"
+            >
+              Ver movimentações
+            </Link>
+            <Link to="/materias-primas" className="text-sm font-medium text-action hover:underline">
+              Voltar à lista
+            </Link>
+          </div>
         }
       />
 

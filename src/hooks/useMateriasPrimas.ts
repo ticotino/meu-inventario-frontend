@@ -44,6 +44,8 @@ export function useCreateMateriaPrima() {
     mutationFn: (input: MateriaPrimaCreateInput) => createMateriaPrima(input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["materias-primas"] });
+      void queryClient.invalidateQueries({ queryKey: ["movimentacoes-estoque"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }
@@ -54,6 +56,7 @@ export function useUpdateMateriaPrima() {
     mutationFn: ({ id, input }: { id: string; input: MateriaPrimaUpdateInput }) => updateMateriaPrima(id, input),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["materias-primas"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
     },
   });
 }

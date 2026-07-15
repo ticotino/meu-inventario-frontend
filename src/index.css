@@ -84,3 +84,61 @@ input:-webkit-autofill:focus {
 @media (prefers-reduced-motion: reduce) {
   .mobile-sidebar { animation: none; }
 }
+
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  body {
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-size: 10pt;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .skip-link,
+  .app-topbar,
+  aside,
+  [data-print-hidden="true"] {
+    display: none !important;
+  }
+
+  #root,
+  #root > div,
+  main {
+    display: block !important;
+    min-height: auto !important;
+    background: var(--color-surface) !important;
+  }
+
+  main {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .shadow-card {
+    box-shadow: none !important;
+  }
+
+  .print-document,
+  [data-print-document="true"] {
+    width: 100% !important;
+    max-width: none !important;
+  }
+
+  .print-avoid-break,
+  .print-section,
+  .print-item,
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+}

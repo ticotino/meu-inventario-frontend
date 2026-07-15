@@ -32,6 +32,9 @@ const MateriaPrimaDetalhe = lazy(() =>
     default: module.MateriaPrimaDetalhe,
   })),
 );
+const Movimentacoes = lazy(() =>
+  import("./pages/Movimentacoes").then((module) => ({ default: module.Movimentacoes })),
+);
 const Producoes = lazy(() =>
   import("./pages/producao/Producoes").then((module) => ({ default: module.Producoes })),
 );
@@ -106,6 +109,7 @@ export default function App() {
                 <Route path="/materias-primas" element={<MateriasPrimas />} />
                 <Route path="/materias-primas/nova" element={<NovaMateriaPrima />} />
                 <Route path="/materias-primas/:id" element={<MateriaPrimaDetalhe />} />
+                <Route path="/movimentacoes" element={<Movimentacoes />} />
                 <Route path="/producao" element={<Producoes />} />
                 <Route path="/producao/nova" element={<NovaProducao />} />
                 <Route path="/producao/produtos" element={<Produtos />} />
