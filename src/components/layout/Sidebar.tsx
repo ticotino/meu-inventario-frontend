@@ -1,48 +1,165 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { RefObject } from "react";
+import {
+  ArrowLeftRight,
+  BarChart3,
+  Boxes,
+  Building2,
+  ClipboardList,
+  Factory,
+  LayoutDashboard,
+  PackageCheck,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Search,
+  ShoppingCart,
+  Truck,
+  UserCog,
+  X,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 
 interface NavItem {
   to: string;
   label: string;
+  icon: LucideIcon;
 }
 
-const LINKS: NavItem[] = [
-  { to: "/", label: "Dashboard" },
-  { to: "/materias-primas", label: "Matérias-primas" },
-  { to: "/movimentacoes", label: "Movimentações" },
-  { to: "/compras", label: "Compras" },
-  { to: "/producao", label: "Produção" },
-  { to: "/pedidos", label: "Pedidos" },
-  { to: "/romaneios", label: "Romaneios" },
-  { to: "/relatorios", label: "Relatórios" },
-  { to: "/fabricantes", label: "Fabricantes" },
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "Visão geral",
+    items: [{ to: "/", label: "Dashboard", icon: LayoutDashboard }],
+  },
+  {
+    label: "Estoque",
+    items: [
+      { to: "/materias-primas", label: "Matérias-primas", icon: Boxes },
+      { to: "/movimentacoes", label: "Movimentações", icon: ArrowLeftRight },
+      { to: "/compras", label: "Compras", icon: ShoppingCart },
+      { to: "/fabricantes", label: "Fabricantes", icon: Building2 },
+    ],
+  },
+  {
+    label: "Operação",
+    items: [
+      { to: "/producao", label: "Produção", icon: Factory },
+      { to: "/pedidos", label: "Pedidos", icon: ClipboardList },
+      { to: "/romaneios", label: "Romaneios", icon: Truck },
+    ],
+  },
+  {
+    label: "Gestão",
+    items: [{ to: "/relatorios", label: "Relatórios", icon: BarChart3 }],
+  },
 ];
 
-const ADMIN_LINKS: NavItem[] = [{ to: "/usuarios/novo", label: "Gerenciar acessos" }];
+const ADMIN_GROUP: NavGroup = {
+  label: "Administração",
+  items: [{ to: "/usuarios/novo", label: "Gerenciar acessos", icon: UserCog }],
+};
+
+function normalizeSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLocaleLowerCase("pt-BR")
+    .trim();
+}
 
 interface SidebarProps {
   open: boolean;
+  collapsed: boolean;
   onClose: () => void;
+  onToggleCollapsed: () => void;
+  onExpand: () => void;
   triggerRef: RefObject<HTMLButtonElement | null>;
 }
 
 interface SidebarContentProps {
-  links: NavItem[];
+  groups: NavGroup[];
   titleId: string;
+  searchId: string;
+  query: string;
+  collapsed?: boolean;
+  onQueryChange: (value: string) => void;
+  onSearchWhileCollapsed?: () => void;
   onNavigate?: () => void;
   onClose?: () => void;
+  onToggleCollapsed?: () => void;
   closeButtonRef?: RefObject<HTMLButtonElement | null>;
+  searchInputRef?: RefObject<HTMLInputElement | null>;
 }
 
-function SidebarContent({ links, titleId, onNavigate, onClose, closeButtonRef }: SidebarContentProps) {
+function SidebarContent({
+  groups,
+  titleId,
+  searchId,
+  query,
+  collapsed = false,
+  onQueryChange,
+  onSearchWhileCollapsed,
+  onNavigate,
+  onClose,
+  onToggleCollapsed,
+  closeButtonRef,
+  searchInputRef,
+}: SidebarContentProps) {
+  const normalizedQuery = normalizeSearch(query);
+  const filteredGroups = useMemo(
+    () =>
+      groups
+        .map((group) => ({
+          ...group,
+          items: group.items.filter((item) => normalizeSearch(item.label).includes(normalizedQuery)),
+        }))
+        .filter((group) => group.items.length > 0),
+    [groups, normalizedQuery],
+  );
+
   return (
     <>
-      <div className="flex min-h-16 items-center justify-between gap-3 px-4 py-3">
-        <div id={titleId} className="min-w-0 px-2 text-lg font-semibold tracking-tight text-sidebar-text-strong">
-          Meu Inventário
-        </div>
+      <div
+        className={`flex min-h-16 shrink-0 items-center gap-2 px-3 py-2 ${collapsed ? "justify-center" : "justify-between"}`}
+      >
+        {collapsed ? (
+          <span id={titleId} className="sr-only">
+            Meu Inventário
+          </span>
+        ) : (
+          <div className="flex min-w-0 items-center gap-3 px-1">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-sidebar-hover text-sidebar-text-strong">
+              <PackageCheck aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
+            </span>
+            <span id={titleId} className="truncate text-lg font-semibold text-sidebar-text-strong">
+              Meu Inventário
+            </span>
+          </div>
+        )}
+
+        {onToggleCollapsed && (
+          <button
+            type="button"
+            onClick={onToggleCollapsed}
+            className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-sidebar-text transition-colors hover:bg-sidebar-hover hover:text-sidebar-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:transition-none"
+            aria-label={collapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+            aria-expanded={!collapsed}
+            aria-controls="desktop-sidebar"
+          >
+            {collapsed ? (
+              <PanelLeftOpen aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
+            ) : (
+              <PanelLeftClose aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
+            )}
+          </button>
+        )}
+
         {onClose && (
           <button
             ref={closeButtonRef}
@@ -51,45 +168,134 @@ function SidebarContent({ links, titleId, onNavigate, onClose, closeButtonRef }:
             className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-sidebar-text transition-colors hover:bg-sidebar-hover hover:text-sidebar-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:transition-none"
             aria-label="Fechar menu"
           >
-            <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18 18 6M6 6l12 12" />
-            </svg>
+            <X aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
           </button>
         )}
       </div>
 
-      <nav aria-label="Navegação principal" className="flex flex-col gap-1 px-3 pb-5">
-        {links.map((link) => (
-          <NavLink
-            key={link.to}
-            to={link.to}
-            end={link.to === "/"}
-            onClick={onNavigate}
-            className={({ isActive }) =>
-              `flex min-h-11 items-center rounded-md px-3 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:transition-none ${
-                isActive ? "bg-action text-surface" : "text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-text-strong"
-              }`
-            }
+      <div className={`shrink-0 px-3 pb-3 pt-1 ${collapsed ? "flex justify-center" : ""}`}>
+        {collapsed ? (
+          <button
+            type="button"
+            onClick={onSearchWhileCollapsed}
+            className="flex min-h-11 min-w-11 items-center justify-center rounded-md text-sidebar-text transition-colors hover:bg-sidebar-hover hover:text-sidebar-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:transition-none"
+            aria-label="Expandir menu e buscar uma seção"
+            title="Buscar seção"
           >
-            {link.label}
-          </NavLink>
+            <Search aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
+          </button>
+        ) : (
+          <div className="relative">
+            <label className="sr-only" htmlFor={searchId}>
+              Buscar seção
+            </label>
+            <Search
+              aria-hidden="true"
+              className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-sidebar-text"
+              strokeWidth={2}
+            />
+            <input
+              ref={searchInputRef}
+              id={searchId}
+              type="search"
+              value={query}
+              onChange={(event) => onQueryChange(event.target.value)}
+              placeholder="Buscar seção"
+              autoComplete="off"
+              className="min-h-11 w-full rounded-md border border-sidebar-text/40 bg-sidebar-hover py-2 pl-10 pr-3 text-sm text-sidebar-text-strong placeholder:text-sidebar-text transition-colors hover:border-sidebar-text/60 focus:border-action focus:outline-none focus:ring-2 focus:ring-action focus:ring-offset-2 focus:ring-offset-sidebar motion-reduce:transition-none"
+            />
+          </div>
+        )}
+      </div>
+
+      <nav
+        aria-label="Navegação principal"
+        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 pb-5"
+      >
+        {filteredGroups.map((group) => (
+          <div key={group.label} className="space-y-1">
+            <h2 className={collapsed ? "sr-only" : "px-3 pb-1 text-xs font-medium text-sidebar-text"}>
+              {group.label}
+            </h2>
+            {group.items.map((item) => {
+              const Icon = item.icon;
+
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === "/"}
+                  onClick={onNavigate}
+                  aria-label={collapsed ? item.label : undefined}
+                  title={collapsed ? item.label : undefined}
+                  className={({ isActive }) =>
+                    `flex min-h-11 items-center rounded-md py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:transition-none ${
+                      collapsed ? "justify-center px-2" : "gap-3 px-3"
+                    } ${
+                      isActive
+                        ? "bg-action text-surface"
+                        : "text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-text-strong"
+                    }`
+                  }
+                >
+                  <Icon aria-hidden="true" className="h-5 w-5 shrink-0" strokeWidth={2} />
+                  {!collapsed && <span className="truncate">{item.label}</span>}
+                </NavLink>
+              );
+            })}
+          </div>
         ))}
+
+        {filteredGroups.length === 0 && !collapsed && (
+          <div
+            className="rounded-md border border-sidebar-text/40 px-3 py-4 text-sm text-sidebar-text"
+            role="status"
+          >
+            <p>Nenhuma seção encontrada.</p>
+            <button
+              type="button"
+              onClick={() => onQueryChange("")}
+              className="mt-2 min-h-11 rounded-md px-2 py-2 font-medium text-sidebar-text-strong underline decoration-sidebar-text underline-offset-4 transition-colors hover:text-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:transition-none"
+            >
+              Limpar busca
+            </button>
+          </div>
+        )}
       </nav>
     </>
   );
 }
 
-export function Sidebar({ open, onClose, triggerRef }: SidebarProps) {
+export function Sidebar({ open, collapsed, onClose, onToggleCollapsed, onExpand, triggerRef }: SidebarProps) {
   const { usuario } = useAuth();
-  const links = usuario?.papel === "admin" ? [...LINKS, ...ADMIN_LINKS] : LINKS;
+  const groups = useMemo(
+    () => (usuario?.papel === "admin" ? [...NAV_GROUPS, ADMIN_GROUP] : NAV_GROUPS),
+    [usuario?.papel],
+  );
+  const [query, setQuery] = useState("");
   const drawerRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const desktopSearchRef = useRef<HTMLInputElement>(null);
+  const shouldFocusSearchRef = useRef(false);
+
+  function handleSearchWhileCollapsed() {
+    shouldFocusSearchRef.current = true;
+    onExpand();
+  }
+
+  useEffect(() => {
+    if (!collapsed && shouldFocusSearchRef.current) {
+      shouldFocusSearchRef.current = false;
+      desktopSearchRef.current?.focus();
+    }
+  }, [collapsed]);
 
   useEffect(() => {
     if (!open) return;
 
     const previousOverflow = document.body.style.overflow;
     const triggerElement = triggerRef.current;
+    let shouldRestoreTriggerFocus = true;
     document.body.style.overflow = "hidden";
     closeButtonRef.current?.focus();
 
@@ -104,7 +310,7 @@ export function Sidebar({ open, onClose, triggerRef }: SidebarProps) {
 
       const focusableElements = Array.from(
         drawerRef.current.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
+          'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
         ),
       );
       const firstElement = focusableElements[0];
@@ -123,27 +329,48 @@ export function Sidebar({ open, onClose, triggerRef }: SidebarProps) {
 
     document.addEventListener("keydown", handleKeyDown);
 
-    // O drawer só existe em telas < md (some via `md:hidden`); se a viewport
-    // cruzar para desktop enquanto `open` continua true (ex.: rotação de
-    // tablet), libera o scroll-lock e o focus-trap, que ficariam presos.
     const mediaQuery = window.matchMedia("(min-width: 768px)");
     function handleViewportChange(event: MediaQueryListEvent) {
-      if (event.matches) onClose();
+      if (event.matches) {
+        shouldRestoreTriggerFocus = false;
+        onClose();
+      }
     }
     mediaQuery.addEventListener("change", handleViewportChange);
+
+    if (mediaQuery.matches) {
+      shouldRestoreTriggerFocus = false;
+      onClose();
+    }
 
     return () => {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", handleKeyDown);
       mediaQuery.removeEventListener("change", handleViewportChange);
-      triggerElement?.focus();
+      if (shouldRestoreTriggerFocus) triggerElement?.focus();
     };
   }, [onClose, open, triggerRef]);
 
   return (
     <>
-      <aside aria-labelledby="desktop-sidebar-title" className="hidden w-64 shrink-0 flex-col bg-sidebar text-sidebar-text md:flex">
-        <SidebarContent links={links} titleId="desktop-sidebar-title" />
+      <aside
+        id="desktop-sidebar"
+        aria-labelledby="desktop-sidebar-title"
+        className={`hidden shrink-0 flex-col bg-sidebar text-sidebar-text transition-[width] duration-200 ease-out md:flex motion-reduce:transition-none ${
+          collapsed ? "w-[4.5rem]" : "w-64"
+        }`}
+      >
+        <SidebarContent
+          groups={groups}
+          titleId="desktop-sidebar-title"
+          searchId="desktop-sidebar-search"
+          query={query}
+          collapsed={collapsed}
+          onQueryChange={setQuery}
+          onSearchWhileCollapsed={handleSearchWhileCollapsed}
+          onToggleCollapsed={onToggleCollapsed}
+          searchInputRef={desktopSearchRef}
+        />
       </aside>
 
       {open && (
@@ -155,11 +382,14 @@ export function Sidebar({ open, onClose, triggerRef }: SidebarProps) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="mobile-sidebar-title"
-            className="mobile-sidebar fixed inset-y-0 left-0 z-30 flex w-64 max-w-[calc(100vw-3rem)] flex-col overflow-y-auto bg-sidebar text-sidebar-text md:hidden"
+            className="mobile-sidebar fixed inset-y-0 left-0 z-30 flex w-64 max-w-[calc(100vw-3rem)] flex-col overflow-hidden bg-sidebar text-sidebar-text md:hidden"
           >
             <SidebarContent
-              links={links}
+              groups={groups}
               titleId="mobile-sidebar-title"
+              searchId="mobile-sidebar-search"
+              query={query}
+              onQueryChange={setQuery}
               onNavigate={onClose}
               onClose={onClose}
               closeButtonRef={closeButtonRef}
