@@ -12,6 +12,7 @@ import {
   ShoppingCart,
   Truck,
   UserCog,
+  Workflow,
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -47,6 +48,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Operação",
     items: [
       { to: "/producao", label: "Produção", icon: Factory },
+      { to: "/beneficiamento", label: "Beneficiamento", icon: Workflow },
       { to: "/pedidos", label: "Pedidos", icon: ClipboardList },
       { to: "/romaneios", label: "Romaneios", icon: Truck },
     ],
