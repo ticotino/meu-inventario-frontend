@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { useDashboardMetricas } from "../../hooks/useDashboardMetricas";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
@@ -6,14 +7,23 @@ interface TileProps {
   titulo: string;
   valor: string;
   legenda?: string;
+  link?: { to: string; label: string };
 }
 
-function Tile({ titulo, valor, legenda }: TileProps) {
+function Tile({ titulo, valor, legenda, link }: TileProps) {
   return (
     <div className="rounded-lg border border-border bg-surface p-5 shadow-card">
       <p className="text-sm font-medium text-muted">{titulo}</p>
       <p className="mt-2 text-2xl font-semibold tabular-nums text-ink">{valor}</p>
       {legenda && <p className="mt-1 text-xs text-muted">{legenda}</p>}
+      {link && (
+        <Link
+          to={link.to}
+          className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-action underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
+        >
+          {link.label}
+        </Link>
+      )}
     </div>
   );
 }
@@ -30,12 +40,26 @@ export function Dashboard() {
         {primeiroNome ? `Olá, ${primeiroNome}` : "Olá"}
       </h1>
       <p className="mt-1 text-sm text-muted">
-        Os indicadores de estoque, produção e pedidos parados aparecerão aqui.
+        Confira as pendências mais importantes antes de voltar à operação.
       </p>
 
       <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Tile titulo="Estoque baixo" valor="—" />
-        <Tile titulo="Pedidos parados" valor={metricas ? String(metricas.pedidos_pendentes) : "—"} />
+        <Tile
+          titulo="Estoque baixo"
+          valor={metricas ? String(metricas.estoque_baixo_total) : "—"}
+          legenda={
+            metricas
+              ? `${metricas.materias_primas_estoque_baixo} matérias-primas · ${metricas.produtos_estoque_baixo} produtos`
+              : undefined
+          }
+          link={{ to: "/materias-primas?estoque_baixo=true", label: "Ver itens críticos" }}
+        />
+        <Tile
+          titulo="Pedidos atrasados"
+          valor={metricas ? String(metricas.pedidos_atrasados) : "—"}
+          legenda={metricas ? `${metricas.pedidos_proximos} vencem nos próximos 3 dias` : undefined}
+          link={{ to: "/pedidos?prazo=atrasado", label: "Ver pedidos" }}
+        />
         <Tile
           titulo="Produções recentes"
           valor={metricas ? String(metricas.producoes_recentes) : "—"}

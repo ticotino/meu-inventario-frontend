@@ -18,6 +18,7 @@ import type { MateriaPrima } from "../../types/materiaPrima";
 import { formatarData, formatarQuantidade } from "../../utils/format";
 
 type FiltroStatus = "ativas" | "inativas" | "todas";
+type FiltroEstoque = "todos" | "baixo";
 
 const STATUS_PARA_ATIVO: Record<FiltroStatus, boolean | undefined> = {
   ativas: true,
@@ -31,11 +32,13 @@ export function MateriasPrimas() {
   const buscaDebounced = useDebouncedValue(busca, 300);
   const [fabricanteId, setFabricanteId] = useState("");
   const [status, setStatus] = useState<FiltroStatus>("ativas");
+  const [estoque, setEstoque] = useState<FiltroEstoque>("todos");
 
   const filtros = {
     busca: buscaDebounced,
     fabricanteId: fabricanteId || undefined,
     ativo: STATUS_PARA_ATIVO[status],
+    estoqueBaixo: estoque === "baixo" ? true : undefined,
   };
 
   const { data: materiasPrimas, isPending, isError, error, refetch } = useMateriasPrimas(filtros);
@@ -66,6 +69,12 @@ export function MateriasPrimas() {
       cell: (mp) => (
         <span className="tabular-nums">
           {formatarQuantidade(mp.quantidade_disponivel, mp.unidade_medida)}
+          {mp.estoque_minimo !== null && (
+            <span className="block text-xs text-muted">
+              Mínimo: {formatarQuantidade(mp.estoque_minimo, mp.unidade_medida)}
+            </span>
+          )}
+          {mp.estoque_baixo && <span className="block text-xs font-medium text-danger">Estoque baixo</span>}
           {!mp.ativo && <span className="block text-xs text-muted">Inativa</span>}
         </span>
       ),
@@ -82,7 +91,7 @@ export function MateriasPrimas() {
     },
   ];
 
-  const temFiltro = buscaDebounced.trim().length > 0 || fabricanteId !== "" || status !== "ativas";
+  const temFiltro = buscaDebounced.trim().length > 0 || fabricanteId !== "" || status !== "ativas" || estoque !== "todos";
   const semFabricantes = fabricantes !== undefined && fabricantes.length === 0;
 
   return (
@@ -136,6 +145,18 @@ export function MateriasPrimas() {
             <option value="ativas">Ativas</option>
             <option value="inativas">Inativas</option>
             <option value="todas">Todas</option>
+          </Select>
+        </div>
+        <div className="max-w-44 flex-1">
+          <Select
+            id="filtro-estoque-materia-prima"
+            label="Filtrar por nível de estoque"
+            hideLabel
+            value={estoque}
+            onChange={(e) => setEstoque(e.target.value as FiltroEstoque)}
+          >
+            <option value="todos">Qualquer estoque</option>
+            <option value="baixo">Estoque baixo</option>
           </Select>
         </div>
       </div>
@@ -193,6 +214,12 @@ export function MateriasPrimas() {
               <p className="text-sm text-body">{mp.fabricante_nome}</p>
               <p className="text-sm text-body tabular-nums">
                 Saldo: {formatarQuantidade(mp.quantidade_disponivel, mp.unidade_medida)}
+                {mp.estoque_minimo !== null && (
+                  <span className="text-muted">
+                    {" "}· Mínimo: {formatarQuantidade(mp.estoque_minimo, mp.unidade_medida)}
+                  </span>
+                )}
+                {mp.estoque_baixo && <span className="font-medium text-danger"> · Estoque baixo</span>}
                 {!mp.ativo && <span className="text-muted"> · Inativa</span>}
               </p>
               <div className="pt-1">

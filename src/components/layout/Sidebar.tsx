@@ -14,6 +14,7 @@ const LINKS: NavItem[] = [
   { to: "/producao", label: "Produção" },
   { to: "/pedidos", label: "Pedidos" },
   { to: "/romaneios", label: "Romaneios" },
+  { to: "/relatorios", label: "Relatórios" },
   { to: "/fabricantes", label: "Fabricantes" },
 ];
 

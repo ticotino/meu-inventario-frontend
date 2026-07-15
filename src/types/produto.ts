@@ -5,6 +5,8 @@ export interface Produto {
   descricao: string | null;
   // decimal do Postgres chega como string
   quantidade_disponivel: string;
+  estoque_minimo: string | null;
+  estoque_baixo: boolean;
   ativo: boolean;
   criado_por: string;
   criado_em: string;
@@ -13,16 +15,19 @@ export interface Produto {
 export interface ProdutoCreateInput {
   nome: string;
   descricao?: string;
+  estoque_minimo?: number | null;
 }
 
 export interface ProdutoUpdateInput {
   nome?: string;
   // null limpa o campo explicitamente; undefined mantém o valor atual.
   descricao?: string | null;
+  estoque_minimo?: number | null;
   ativo?: boolean;
 }
 
 export interface ProdutoFiltros {
   busca?: string;
   ativo?: boolean;
+  estoqueBaixo?: boolean;
 }

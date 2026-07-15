@@ -6,6 +6,7 @@ export async function listProdutos(filtros: ProdutoFiltros = {}): Promise<Produt
   const params: Record<string, string> = {};
   if (filtros.busca?.trim()) params.busca = filtros.busca.trim();
   if (filtros.ativo !== undefined) params.ativo = String(filtros.ativo);
+  if (filtros.estoqueBaixo !== undefined) params.estoque_baixo = String(filtros.estoqueBaixo);
   const { data } = await api.get<Envelope<Produto[]>>("/produtos", { params });
   return data.data;
 }

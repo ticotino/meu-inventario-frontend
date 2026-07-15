@@ -16,22 +16,28 @@ import { useProdutos } from "../../hooks/useProdutos";
 import { getApiErrorMessage } from "../../services/api";
 import { formatarQuantidade } from "../../utils/format";
 
-const novoPedidoSchema = z.object({
-  cliente_id: z.string().min(1, "Selecione um cliente"),
-  data_pedido: z.string().min(1, "Informe a data do pedido"),
-  observacoes: z.string().trim().max(1000, "As observações são muito longas").optional(),
-  itens: z
-    .array(
-      z.object({
-        produto_id: z.string().min(1, "Selecione o produto"),
-        quantidade: z
-          .string()
-          .min(1, "Informe a quantidade")
-          .refine((valor) => Number(valor) > 0, "A quantidade deve ser maior que zero"),
-      }),
-    )
-    .min(1, "Informe ao menos um produto"),
-});
+const novoPedidoSchema = z
+  .object({
+    cliente_id: z.string().min(1, "Selecione um cliente"),
+    data_pedido: z.string().min(1, "Informe a data do pedido"),
+    data_prevista_entrega: z.string().min(1, "Informe o prazo de entrega"),
+    observacoes: z.string().trim().max(1000, "As observações são muito longas").optional(),
+    itens: z
+      .array(
+        z.object({
+          produto_id: z.string().min(1, "Selecione o produto"),
+          quantidade: z
+            .string()
+            .min(1, "Informe a quantidade")
+            .refine((valor) => Number(valor) > 0, "A quantidade deve ser maior que zero"),
+        }),
+      )
+      .min(1, "Informe ao menos um produto"),
+  })
+  .refine((dados) => dados.data_prevista_entrega >= dados.data_pedido, {
+    message: "O prazo não pode ser anterior à data do pedido",
+    path: ["data_prevista_entrega"],
+  });
 
 type NovoPedidoForm = z.infer<typeof novoPedidoSchema>;
 
@@ -62,6 +68,7 @@ export function NovoPedido() {
     defaultValues: {
       cliente_id: "",
       data_pedido: hoje(),
+      data_prevista_entrega: hoje(),
       observacoes: "",
       itens: [{ produto_id: "", quantidade: "" }],
     },
@@ -102,6 +109,7 @@ export function NovoPedido() {
       const criado = await criar.mutateAsync({
         cliente_id: dados.cliente_id,
         data_pedido: dados.data_pedido,
+        data_prevista_entrega: dados.data_prevista_entrega,
         observacoes: dados.observacoes || undefined,
         itens: dados.itens.map((item) => ({
           produto_id: item.produto_id,
@@ -165,6 +173,15 @@ export function NovoPedido() {
               required
               error={errors.data_pedido?.message}
               {...register("data_pedido")}
+            />
+            <Input
+              id="pedido-data-entrega"
+              label="Prazo de entrega"
+              type="date"
+              required
+              error={errors.data_prevista_entrega?.message}
+              hint="Data combinada para concluir a entrega."
+              {...register("data_prevista_entrega")}
             />
           </div>
 

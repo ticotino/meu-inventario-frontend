@@ -69,6 +69,9 @@ const NovoRomaneio = lazy(() =>
 const RomaneioDetalhe = lazy(() =>
   import("./pages/romaneios/RomaneioDetalhe").then((module) => ({ default: module.RomaneioDetalhe })),
 );
+const Relatorios = lazy(() =>
+  import("./pages/Relatorios").then((module) => ({ default: module.Relatorios })),
+);
 
 function RouteLoading() {
   return (
@@ -116,7 +119,7 @@ export default function App() {
                 <Route path="/romaneios" element={<Romaneios />} />
                 <Route path="/romaneios/novo" element={<NovoRomaneio />} />
                 <Route path="/romaneios/:id" element={<RomaneioDetalhe />} />
-
+                <Route path="/relatorios" element={<Relatorios />} />
               </Route>
             </Route>
 

@@ -25,6 +25,10 @@ const editarSchema = z.object({
     .max(120, "O nome deve ter no máximo 120 caracteres"),
   cor: z.string().trim().max(60, "A cor é muito longa").optional(),
   observacoes: z.string().trim().max(1000, "As observações são muito longas").optional(),
+  estoque_minimo: z
+    .string()
+    .optional()
+    .refine((valor) => !valor || Number(valor) >= 0, "O estoque mínimo não pode ser negativo"),
   ativo: z.boolean(),
 });
 
@@ -78,6 +82,7 @@ function FormEdicao({ materiaPrima }: { materiaPrima: MateriaPrima }) {
       nome_tecido: materiaPrima.nome_tecido,
       cor: materiaPrima.cor ?? "",
       observacoes: materiaPrima.observacoes ?? "",
+      estoque_minimo: materiaPrima.estoque_minimo ?? "",
       ativo: materiaPrima.ativo,
     },
   });
@@ -87,6 +92,7 @@ function FormEdicao({ materiaPrima }: { materiaPrima: MateriaPrima }) {
       nome_tecido: materiaPrima.nome_tecido,
       cor: materiaPrima.cor ?? "",
       observacoes: materiaPrima.observacoes ?? "",
+      estoque_minimo: materiaPrima.estoque_minimo ?? "",
       ativo: materiaPrima.ativo,
     });
   }, [materiaPrima, reset]);
@@ -102,6 +108,7 @@ function FormEdicao({ materiaPrima }: { materiaPrima: MateriaPrima }) {
           // "" significa "limpar o campo" em um form de edição.
           cor: dados.cor || null,
           observacoes: dados.observacoes || null,
+          estoque_minimo: dados.estoque_minimo ? Number(dados.estoque_minimo) : null,
           ativo: dados.ativo,
         },
       });
@@ -133,6 +140,18 @@ function FormEdicao({ materiaPrima }: { materiaPrima: MateriaPrima }) {
           maxLength={1000}
           error={errors.observacoes?.message}
           {...register("observacoes")}
+        />
+
+        <Input
+          id="detalhe-estoque-minimo"
+          label="Estoque mínimo"
+          type="number"
+          step="0.001"
+          min="0"
+          inputMode="decimal"
+          hint="Deixe vazio para desativar o alerta de estoque baixo."
+          error={errors.estoque_minimo?.message}
+          {...register("estoque_minimo")}
         />
 
         <label className="flex min-h-11 items-center gap-2 text-sm text-body">
@@ -202,11 +221,24 @@ export function MateriaPrimaDetalhe() {
             rotulo="Quantidade recebida"
             valor={formatarQuantidade(materiaPrima.quantidade_recebida, materiaPrima.unidade_medida)}
           />
+          <ResumoItem
+            rotulo="Estoque mínimo"
+            valor={
+              materiaPrima.estoque_minimo === null
+                ? "Alerta desativado"
+                : formatarQuantidade(materiaPrima.estoque_minimo, materiaPrima.unidade_medida)
+            }
+          />
           <ResumoItem rotulo="Valor unitário" valor={formatarMoeda(materiaPrima.valor_unitario)} />
           <ResumoItem rotulo="Recebido em" valor={formatarData(materiaPrima.data_recebimento)} />
           <ResumoItem rotulo="Fabricante" valor={materiaPrima.fabricante_nome} />
           <ResumoItem rotulo="Unidade" valor={UNIDADE_MEDIDA_LABELS[materiaPrima.unidade_medida]} />
         </dl>
+        {materiaPrima.estoque_baixo && (
+          <p role="status" className="mt-4 rounded-md bg-danger-bg px-3 py-2 text-sm font-medium text-danger-strong">
+            Estoque baixo: o saldo disponível atingiu o limite configurado.
+          </p>
+        )}
         {materiaPrima.observacoes && <p className="mt-4 text-sm text-body">{materiaPrima.observacoes}</p>}
       </div>
 

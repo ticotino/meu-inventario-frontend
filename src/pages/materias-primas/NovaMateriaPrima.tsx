@@ -28,6 +28,10 @@ const novaMateriaPrimaSchema = z.object({
     .string()
     .min(1, "Informe a quantidade")
     .refine((valor) => Number(valor) > 0, "A quantidade deve ser maior que zero"),
+  estoque_minimo: z
+    .string()
+    .optional()
+    .refine((valor) => !valor || Number(valor) >= 0, "O estoque mínimo não pode ser negativo"),
   valor_unitario: z
     .string()
     .optional()
@@ -73,6 +77,7 @@ export function NovaMateriaPrima() {
         cor: dados.cor || undefined,
         unidade_medida: dados.unidade_medida,
         quantidade_recebida: Number(dados.quantidade_recebida),
+        estoque_minimo: dados.estoque_minimo ? Number(dados.estoque_minimo) : undefined,
         valor_unitario: dados.valor_unitario ? Number(dados.valor_unitario) : undefined,
         data_recebimento: dados.data_recebimento,
         observacoes: dados.observacoes || undefined,
@@ -182,6 +187,18 @@ export function NovaMateriaPrima() {
               {...register("valor_unitario")}
             />
           </div>
+
+          <Input
+            id="mp-estoque-minimo"
+            label="Estoque mínimo"
+            type="number"
+            step="0.001"
+            min="0"
+            inputMode="decimal"
+            hint="Opcional. O item será sinalizado quando o saldo for igual ou inferior a este valor."
+            error={errors.estoque_minimo?.message}
+            {...register("estoque_minimo")}
+          />
 
           <Input
             id="mp-data"

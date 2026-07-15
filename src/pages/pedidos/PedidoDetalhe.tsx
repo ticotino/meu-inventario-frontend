@@ -2,15 +2,22 @@ import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { ErrorState } from "../../components/ui/ErrorState";
+import { Input } from "../../components/ui/Input";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { ResponsiveTable } from "../../components/ui/ResponsiveTable";
 import type { Coluna } from "../../components/ui/ResponsiveTable";
 import { buttonClasses, feedbackErrorClass } from "../../components/ui/formStyles";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
-import { useAtenderPedido, useCancelarPedido, useFaturarPedido, usePedido } from "../../hooks/usePedidos";
+import {
+  useAtenderPedido,
+  useCancelarPedido,
+  useFaturarPedido,
+  usePedido,
+  useUpdatePrazoPedido,
+} from "../../hooks/usePedidos";
 import { getApiErrorMessage } from "../../services/api";
 import type { PedidoItem } from "../../types/pedido";
-import { formatarData, formatarQuantidade } from "../../utils/format";
+import { formatarData, formatarDataHora, formatarQuantidade } from "../../utils/format";
 import { STATUS_PEDIDO_CLASS, STATUS_PEDIDO_LABEL } from "./statusPedido";
 
 function ResumoItem({ rotulo, valor, destaque = false }: { rotulo: string; valor: React.ReactNode; destaque?: boolean }) {
@@ -41,6 +48,108 @@ function DetalheSkeleton() {
         </div>
       ))}
       <span className="sr-only">Carregando...</span>
+    </div>
+  );
+}
+
+function PrazoPedido({
+  pedidoId,
+  dataPedido,
+  dataPrevistaEntrega,
+  situacaoPrazo,
+  diasParaEntrega,
+  editavel,
+}: {
+  pedidoId: string;
+  dataPedido: string;
+  dataPrevistaEntrega: string | null;
+  situacaoPrazo: "sem_prazo" | "atrasado" | "vence_hoje" | "no_prazo";
+  diasParaEntrega: number | null;
+  editavel: boolean;
+}) {
+  const [editando, setEditando] = useState(false);
+  const [prazo, setPrazo] = useState(dataPrevistaEntrega ?? "");
+  const [erro, setErro] = useState<string | null>(null);
+  const atualizar = useUpdatePrazoPedido();
+
+  async function salvar() {
+    setErro(null);
+    if (!prazo) {
+      setErro("Informe o prazo de entrega.");
+      return;
+    }
+    if (prazo < dataPedido) {
+      setErro("O prazo não pode ser anterior à data do pedido.");
+      return;
+    }
+    try {
+      await atualizar.mutateAsync({ id: pedidoId, dataPrevistaEntrega: prazo });
+      setEditando(false);
+    } catch (error) {
+      setErro(getApiErrorMessage(error, "Não foi possível atualizar o prazo."));
+    }
+  }
+
+  if (!editando) {
+    return (
+      <div className="flex flex-wrap items-end gap-2">
+        <div>
+          <dt className="text-xs text-muted">Prazo de entrega</dt>
+          <dd className="mt-0.5 text-sm tabular-nums text-body">
+            {dataPrevistaEntrega ? formatarData(dataPrevistaEntrega) : "Sem prazo cadastrado"}
+          </dd>
+          {editavel && situacaoPrazo !== "sem_prazo" && (
+            <p className={`mt-0.5 text-xs ${situacaoPrazo === "atrasado" ? "font-medium text-danger" : "text-muted"}`}>
+              {situacaoPrazo === "atrasado"
+                ? `${Math.abs(diasParaEntrega ?? 0)} dia(s) em atraso`
+                : situacaoPrazo === "vence_hoje"
+                  ? "Vence hoje"
+                  : `Faltam ${diasParaEntrega ?? 0} dia(s)`}
+            </p>
+          )}
+        </div>
+        {editavel && (
+          <Button variant="ghost" className="min-h-11" onClick={() => setEditando(true)}>
+            Alterar prazo
+          </Button>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="col-span-2 space-y-2 sm:col-span-3">
+      <div className="flex flex-wrap items-end gap-2">
+        <div className="w-52">
+          <Input
+            id="pedido-editar-prazo"
+            label="Novo prazo de entrega"
+            type="date"
+            required
+            min={dataPedido}
+            value={prazo}
+            error={erro ?? undefined}
+            onChange={(event) => {
+              setPrazo(event.target.value);
+              if (erro) setErro(null);
+            }}
+          />
+        </div>
+        <Button onClick={() => void salvar()} loading={atualizar.isPending} loadingText="Salvando...">
+          Salvar prazo
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={() => {
+            setPrazo(dataPrevistaEntrega ?? "");
+            setErro(null);
+            setEditando(false);
+          }}
+          disabled={atualizar.isPending}
+        >
+          Cancelar
+        </Button>
+      </div>
     </div>
   );
 }
@@ -203,7 +312,18 @@ export function PedidoDetalhe() {
           />
           <ResumoItem rotulo="Cliente" valor={pedido.cliente_nome} />
           <ResumoItem rotulo="Data do pedido" valor={formatarData(pedido.data_pedido)} />
+          <PrazoPedido
+            pedidoId={pedido.id}
+            dataPedido={pedido.data_pedido}
+            dataPrevistaEntrega={pedido.data_prevista_entrega}
+            situacaoPrazo={pedido.situacao_prazo}
+            diasParaEntrega={pedido.dias_para_entrega}
+            editavel={pedido.status === "pendente"}
+          />
           <ResumoItem rotulo="Registrado por" valor={pedido.usuario_nome} />
+          {pedido.atendido_em && <ResumoItem rotulo="Atendido em" valor={formatarDataHora(pedido.atendido_em)} />}
+          {pedido.faturado_em && <ResumoItem rotulo="Faturado em" valor={formatarDataHora(pedido.faturado_em)} />}
+          {pedido.cancelado_em && <ResumoItem rotulo="Cancelado em" valor={formatarDataHora(pedido.cancelado_em)} />}
           {pedido.romaneio_id && (
             <ResumoItem
               rotulo="Romaneio"

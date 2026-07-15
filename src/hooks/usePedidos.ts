@@ -6,12 +6,13 @@ import {
   faturarPedido,
   getPedido,
   listPedidos,
+  updatePrazoPedido,
 } from "../services/pedidosService";
 import type { PedidoCreateInput, PedidoFiltros } from "../types/pedido";
 
 export function usePedidos(filtros: PedidoFiltros = {}) {
   return useQuery({
-    queryKey: ["pedidos", "list", { clienteId: filtros.clienteId ?? "", status: filtros.status ?? "" }],
+    queryKey: ["pedidos", "list", filtros],
     queryFn: () => listPedidos(filtros),
     placeholderData: keepPreviousData,
   });
@@ -68,5 +69,17 @@ export function useFaturarPedido() {
   return useMutation({
     mutationFn: (id: string) => faturarPedido(id),
     onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["pedidos"] }),
+  });
+}
+
+export function useUpdatePrazoPedido() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, dataPrevistaEntrega }: { id: string; dataPrevistaEntrega: string }) =>
+      updatePrazoPedido(id, dataPrevistaEntrega),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: ["pedidos"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
   });
 }

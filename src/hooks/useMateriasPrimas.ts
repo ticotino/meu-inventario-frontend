@@ -16,7 +16,12 @@ export function useMateriasPrimas(filtros: MateriaPrimaFiltros = {}) {
     queryKey: [
       "materias-primas",
       "list",
-      { busca: filtros.busca?.trim() ?? "", fabricanteId: filtros.fabricanteId ?? "", ativo: filtros.ativo ?? null },
+      {
+        busca: filtros.busca?.trim() ?? "",
+        fabricanteId: filtros.fabricanteId ?? "",
+        ativo: filtros.ativo ?? null,
+        estoqueBaixo: filtros.estoqueBaixo ?? null,
+      },
     ],
     queryFn: () => listMateriasPrimas(filtros),
     placeholderData: keepPreviousData,

@@ -4,7 +4,15 @@ import type { ProdutoCreateInput, ProdutoFiltros, ProdutoUpdateInput } from "../
 
 export function useProdutos(filtros: ProdutoFiltros = {}) {
   return useQuery({
-    queryKey: ["produtos", "list", { busca: filtros.busca?.trim() ?? "", ativo: filtros.ativo ?? null }],
+    queryKey: [
+      "produtos",
+      "list",
+      {
+        busca: filtros.busca?.trim() ?? "",
+        ativo: filtros.ativo ?? null,
+        estoqueBaixo: filtros.estoqueBaixo ?? null,
+      },
+    ],
     queryFn: () => listProdutos(filtros),
     placeholderData: keepPreviousData,
   });

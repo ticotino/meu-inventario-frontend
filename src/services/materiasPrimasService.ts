@@ -12,6 +12,7 @@ export async function listMateriasPrimas(filtros: MateriaPrimaFiltros = {}): Pro
   if (filtros.busca?.trim()) params.busca = filtros.busca.trim();
   if (filtros.fabricanteId) params.fabricante_id = filtros.fabricanteId;
   if (filtros.ativo !== undefined) params.ativo = String(filtros.ativo);
+  if (filtros.estoqueBaixo !== undefined) params.estoque_baixo = String(filtros.estoqueBaixo);
   const { data } = await api.get<Envelope<MateriaPrima[]>>("/materias-primas", { params });
   return data.data;
 }

@@ -19,6 +19,10 @@ import { formatarDataHora, formatarQuantidade } from "../../utils/format";
 const editarSchema = z.object({
   nome: z.string().trim().min(2, "Informe ao menos 2 caracteres").max(120, "O nome deve ter no máximo 120 caracteres"),
   descricao: z.string().trim().max(1000, "A descrição é muito longa").optional(),
+  estoque_minimo: z
+    .string()
+    .optional()
+    .refine((valor) => !valor || Number(valor) >= 0, "O estoque mínimo não pode ser negativo"),
   ativo: z.boolean(),
 });
 
@@ -60,12 +64,18 @@ function FormEdicao({ produto }: { produto: Produto }) {
     defaultValues: {
       nome: produto.nome,
       descricao: produto.descricao ?? "",
+      estoque_minimo: produto.estoque_minimo ?? "",
       ativo: produto.ativo,
     },
   });
 
   useEffect(() => {
-    reset({ nome: produto.nome, descricao: produto.descricao ?? "", ativo: produto.ativo });
+    reset({
+      nome: produto.nome,
+      descricao: produto.descricao ?? "",
+      estoque_minimo: produto.estoque_minimo ?? "",
+      ativo: produto.ativo,
+    });
   }, [produto, reset]);
 
   async function onSubmit(dados: EditarForm) {
@@ -78,6 +88,7 @@ function FormEdicao({ produto }: { produto: Produto }) {
           nome: dados.nome,
           // "" significa "limpar o campo" em um form de edição.
           descricao: dados.descricao || null,
+          estoque_minimo: dados.estoque_minimo ? Number(dados.estoque_minimo) : null,
           ativo: dados.ativo,
         },
       });
@@ -106,6 +117,18 @@ function FormEdicao({ produto }: { produto: Produto }) {
           maxLength={1000}
           error={errors.descricao?.message}
           {...register("descricao")}
+        />
+
+        <Input
+          id="detalhe-produto-estoque-minimo"
+          label="Estoque mínimo"
+          type="number"
+          step="0.001"
+          min="0"
+          inputMode="decimal"
+          hint="Deixe vazio para desativar o alerta de estoque baixo."
+          error={errors.estoque_minimo?.message}
+          {...register("estoque_minimo")}
         />
 
         <label className="flex min-h-11 items-center gap-2 text-sm text-body">
@@ -176,7 +199,20 @@ export function ProdutoDetalhe() {
             <dt className="text-xs text-muted">Criado em</dt>
             <dd className="mt-0.5 text-sm text-body">{formatarDataHora(produto.criado_em)}</dd>
           </div>
+          <div>
+            <dt className="text-xs text-muted">Estoque mínimo</dt>
+            <dd className="mt-0.5 text-sm text-body">
+              {produto.estoque_minimo === null
+                ? "Alerta desativado"
+                : formatarQuantidade(produto.estoque_minimo, "unidade")}
+            </dd>
+          </div>
         </dl>
+        {produto.estoque_baixo && (
+          <p role="status" className="mt-4 rounded-md bg-danger-bg px-3 py-2 text-sm font-medium text-danger-strong">
+            Estoque baixo: o saldo disponível atingiu o limite configurado.
+          </p>
+        )}
         <p className="mt-4 text-xs text-muted">
           O saldo muda apenas ao registrar produções (entrada) e romaneios (saída) — não é editável diretamente.
         </p>

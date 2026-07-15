@@ -20,6 +20,8 @@ export interface MateriaPrima {
   // decimais do Postgres chegam como string via pg/knex
   quantidade_recebida: string;
   quantidade_disponivel: string;
+  estoque_minimo: string | null;
+  estoque_baixo: boolean;
   valor_unitario: string | null;
   data_recebimento: string;
   observacoes: string | null;
@@ -34,6 +36,7 @@ export interface MateriaPrimaCreateInput {
   cor?: string;
   unidade_medida: UnidadeMedida;
   quantidade_recebida: number;
+  estoque_minimo?: number | null;
   valor_unitario?: number;
   data_recebimento: string;
   observacoes?: string;
@@ -44,6 +47,7 @@ export interface MateriaPrimaUpdateInput {
   // null limpa o campo explicitamente; undefined mantém o valor atual.
   cor?: string | null;
   observacoes?: string | null;
+  estoque_minimo?: number | null;
   ativo?: boolean;
 }
 
@@ -51,4 +55,5 @@ export interface MateriaPrimaFiltros {
   busca?: string;
   fabricanteId?: string;
   ativo?: boolean;
+  estoqueBaixo?: boolean;
 }

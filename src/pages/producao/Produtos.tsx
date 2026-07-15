@@ -18,6 +18,7 @@ import { formatarDataHora, formatarQuantidade } from "../../utils/format";
 import { ProducaoTabs } from "./ProducaoTabs";
 
 type FiltroStatus = "ativos" | "inativos" | "todos";
+type FiltroEstoque = "todos" | "baixo";
 
 const STATUS_PARA_ATIVO: Record<FiltroStatus, boolean | undefined> = {
   ativos: true,
@@ -30,10 +31,12 @@ export function Produtos() {
   const [busca, setBusca] = useState("");
   const buscaDebounced = useDebouncedValue(busca, 300);
   const [status, setStatus] = useState<FiltroStatus>("ativos");
+  const [estoque, setEstoque] = useState<FiltroEstoque>("todos");
 
   const { data: produtos, isPending, isError, error, refetch } = useProdutos({
     busca: buscaDebounced,
     ativo: STATUS_PARA_ATIVO[status],
+    estoqueBaixo: estoque === "baixo" ? true : undefined,
   });
 
   const colunas: Coluna<Produto>[] = [
@@ -52,6 +55,10 @@ export function Produtos() {
       cell: (p) => (
         <span className="tabular-nums">
           {formatarQuantidade(p.quantidade_disponivel, "unidade")}
+          {p.estoque_minimo !== null && (
+            <span className="block text-xs text-muted">Mínimo: {formatarQuantidade(p.estoque_minimo, "unidade")}</span>
+          )}
+          {p.estoque_baixo && <span className="block text-xs font-medium text-danger">Estoque baixo</span>}
           {!p.ativo && <span className="block text-xs text-muted">Inativo</span>}
         </span>
       ),
@@ -68,7 +75,7 @@ export function Produtos() {
     },
   ];
 
-  const temFiltro = buscaDebounced.trim().length > 0 || status !== "ativos";
+  const temFiltro = buscaDebounced.trim().length > 0 || status !== "ativos" || estoque !== "todos";
 
   return (
     <div className="space-y-6">
@@ -107,6 +114,18 @@ export function Produtos() {
             <option value="ativos">Ativos</option>
             <option value="inativos">Inativos</option>
             <option value="todos">Todos</option>
+          </Select>
+        </div>
+        <div className="max-w-44 flex-1">
+          <Select
+            id="filtro-estoque-produto"
+            label="Filtrar por nível de estoque"
+            hideLabel
+            value={estoque}
+            onChange={(e) => setEstoque(e.target.value as FiltroEstoque)}
+          >
+            <option value="todos">Qualquer estoque</option>
+            <option value="baixo">Estoque baixo</option>
           </Select>
         </div>
       </div>
@@ -148,6 +167,10 @@ export function Produtos() {
               </p>
               <p className="text-sm text-body tabular-nums">
                 Saldo: {formatarQuantidade(p.quantidade_disponivel, "unidade")}
+                {p.estoque_minimo !== null && (
+                  <span className="text-muted"> · Mínimo: {formatarQuantidade(p.estoque_minimo, "unidade")}</span>
+                )}
+                {p.estoque_baixo && <span className="font-medium text-danger"> · Estoque baixo</span>}
                 {!p.ativo && <span className="text-muted"> · Inativo</span>}
               </p>
               <div className="pt-1">

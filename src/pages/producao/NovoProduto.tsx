@@ -15,6 +15,10 @@ import { getApiErrorMessage } from "../../services/api";
 const novoProdutoSchema = z.object({
   nome: z.string().trim().min(2, "Informe ao menos 2 caracteres").max(120, "O nome deve ter no máximo 120 caracteres"),
   descricao: z.string().trim().max(1000, "A descrição é muito longa").optional(),
+  estoque_minimo: z
+    .string()
+    .optional()
+    .refine((valor) => !valor || Number(valor) >= 0, "O estoque mínimo não pode ser negativo"),
 });
 
 type NovoProdutoForm = z.infer<typeof novoProdutoSchema>;
@@ -37,6 +41,7 @@ export function NovoProduto() {
       const criado = await criar.mutateAsync({
         nome: dados.nome,
         descricao: dados.descricao || undefined,
+        estoque_minimo: dados.estoque_minimo ? Number(dados.estoque_minimo) : undefined,
       });
       navigate(`/producao/produtos/${criado.id}`);
     } catch (error) {
@@ -75,6 +80,18 @@ export function NovoProduto() {
             hint="Opcional."
             error={errors.descricao?.message}
             {...register("descricao")}
+          />
+
+          <Input
+            id="produto-estoque-minimo"
+            label="Estoque mínimo"
+            type="number"
+            step="0.001"
+            min="0"
+            inputMode="decimal"
+            hint="Opcional. O produto será sinalizado quando o saldo for igual ou inferior a este valor."
+            error={errors.estoque_minimo?.message}
+            {...register("estoque_minimo")}
           />
 
           {erro && (
