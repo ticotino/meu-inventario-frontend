@@ -18,6 +18,7 @@ export function AppLayout() {
   const mainRef = useRef<HTMLElement>(null);
   const openSidebar = useCallback(() => setSidebarOpen(true), []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+  const toggleSidebar = useCallback(() => setSidebarOpen((value) => !value), []);
   const changeSidebarCollapsed = useCallback((collapsed: boolean) => setSidebarCollapsed(collapsed), []);
 
   useEffect(() => {
@@ -38,7 +39,7 @@ export function AppLayout() {
         Pular para o conteúdo
       </a>
       <Topbar
-        onMenuClick={openSidebar}
+        onMenuClick={toggleSidebar}
         menuExpanded={sidebarOpen}
         menuButtonRef={menuButtonRef}
         sidebarCollapsed={sidebarCollapsed}

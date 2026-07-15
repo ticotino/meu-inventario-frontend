@@ -19,10 +19,7 @@ export function Topbar({
   const { usuario, logout } = useAuth();
 
   return (
-    <header
-      className="app-topbar relative z-40 flex min-h-16 shrink-0 items-stretch border-b border-border bg-surface"
-      inert={menuExpanded ? true : undefined}
-    >
+    <header className="app-topbar relative z-40 flex min-h-16 shrink-0 items-stretch border-b border-border bg-surface">
       <div className="flex min-w-0 items-center gap-1 px-2 md:hidden">
         <button
           ref={menuButtonRef}
