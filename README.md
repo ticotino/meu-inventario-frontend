@@ -2,6 +2,10 @@
 
 Frontend web (React + TypeScript + Vite) do Meu Inventário: um app interno para o dono de uma oficina/produção controlar matérias-primas, produção, pedidos e romaneios em um único registro. Veja [PRODUCT.md](PRODUCT.md) (estratégia) e [DESIGN.md](DESIGN.md) (sistema visual) para contexto.
 
+## Trabalho assistido por agentes
+
+Consulte [AGENTS.md](AGENTS.md) antes de delegar alterações. O arquivo registra fontes de verdade, limites de propriedade, requisitos de acessibilidade, validações e o fluxo de publicação deste frontend.
+
 ## Pré-requisitos
 
 - Node.js 22+
