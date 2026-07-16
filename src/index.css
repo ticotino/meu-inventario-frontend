@@ -26,6 +26,86 @@
   color-scheme: light;
 }
 
+/*
+ * Modo escuro: mesmos nomes de propriedade do @theme acima, redefinidos para
+ * um contexto escuro. Duas ativações, como o padrão da sidebar recolhida:
+ * (a) automática via prefers-color-scheme quando não há preferência salva;
+ * (b) manual via [data-theme] em <html>, persistida em
+ * localStorage["meu-inventario:theme"] (ver src/hooks/useTheme.ts). Um bloco
+ * [data-theme] sempre vence a media query por especificidade, nas duas
+ * direções.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --color-action: #60a5fa;
+    --color-action-hover: #93c5fd;
+    --color-ink: #f1f5f9;
+    --color-body: #cbd5e1;
+    --color-muted: #94a3b8;
+    --color-border: #334155;
+    --color-control-border: #94a3b8;
+    --color-page: #0f172a;
+    --color-surface: #1e293b;
+    --color-sidebar: #0f172a;
+    --color-sidebar-hover: #334155;
+    --color-sidebar-text: #cbd5e1;
+    --color-sidebar-text-strong: #f1f5f9;
+    --color-danger: #f87171;
+    --color-danger-strong: #fca5a5;
+    --color-danger-bg: #450a0a;
+    --color-success: #34d399;
+    --color-success-bg: #022c22;
+    --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.06);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-action: #60a5fa;
+  --color-action-hover: #93c5fd;
+  --color-ink: #f1f5f9;
+  --color-body: #cbd5e1;
+  --color-muted: #94a3b8;
+  --color-border: #334155;
+  --color-control-border: #94a3b8;
+  --color-page: #0f172a;
+  --color-surface: #1e293b;
+  --color-sidebar: #0f172a;
+  --color-sidebar-hover: #334155;
+  --color-sidebar-text: #cbd5e1;
+  --color-sidebar-text-strong: #f1f5f9;
+  --color-danger: #f87171;
+  --color-danger-strong: #fca5a5;
+  --color-danger-bg: #450a0a;
+  --color-success: #34d399;
+  --color-success-bg: #022c22;
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.06);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --color-action: #2563eb;
+  --color-action-hover: #1d4ed8;
+  --color-ink: #1e293b;
+  --color-body: #475569;
+  --color-muted: #64748b;
+  --color-border: #e2e8f0;
+  --color-control-border: #64748b;
+  --color-page: #f8fafc;
+  --color-surface: #ffffff;
+  --color-sidebar: #0f172a;
+  --color-sidebar-hover: #1e293b;
+  --color-sidebar-text: #cbd5e1;
+  --color-sidebar-text-strong: #f1f5f9;
+  --color-danger: #dc2626;
+  --color-danger-strong: #b91c1c;
+  --color-danger-bg: #fef2f2;
+  --color-success: #047857;
+  --color-success-bg: #ecfdf5;
+  --shadow-card: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
 body {
   margin: 0;
   background: var(--color-page);
@@ -89,6 +169,30 @@ input:-webkit-autofill:focus {
 }
 
 @media print {
+  /*
+   * !important nas próprias custom properties: um "background: var(--color-surface)
+   * !important" abaixo não basta sozinho, porque !important resolve qual
+   * declaração de "background" vence, mas não força a reavaliação de
+   * var(--color-surface) — em modo escuro esse var() ainda apontaria para o
+   * valor escuro. Forçamos as variáveis para os valores claros aqui para que
+   * a impressão nunca saia escura, independente de [data-theme].
+   */
+  :root {
+    --color-ink: #1e293b !important;
+    --color-body: #475569 !important;
+    --color-muted: #64748b !important;
+    --color-border: #e2e8f0 !important;
+    --color-control-border: #64748b !important;
+    --color-page: #f8fafc !important;
+    --color-surface: #ffffff !important;
+    --color-danger: #dc2626 !important;
+    --color-danger-strong: #b91c1c !important;
+    --color-danger-bg: #fef2f2 !important;
+    --color-success: #047857 !important;
+    --color-success-bg: #ecfdf5 !important;
+    color-scheme: light !important;
+  }
+
   @page {
     size: A4;
     margin: 12mm;

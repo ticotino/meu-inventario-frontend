@@ -1,7 +1,8 @@
 import type { RefObject } from "react";
-import { LogOut, Menu, PackageCheck } from "lucide-react";
+import { LogOut, Menu, Moon, PackageCheck, Sun } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { useTheme } from "../../hooks/useTheme";
 
 interface TopbarProps {
   onMenuClick: () => void;
@@ -17,6 +18,7 @@ export function Topbar({
   sidebarCollapsed,
 }: TopbarProps) {
   const { usuario, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   return (
     <header className="app-topbar relative z-40 flex min-h-16 shrink-0 items-stretch border-b border-border bg-surface">
@@ -77,6 +79,19 @@ export function Topbar({
           </p>
           <p className="text-xs text-muted">{usuario?.papel === "admin" ? "Administrador" : "Funcionário"}</p>
         </div>
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label={theme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
+          aria-pressed={theme === "dark"}
+          className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-body transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 motion-reduce:transition-none"
+        >
+          {theme === "dark" ? (
+            <Sun aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
+          ) : (
+            <Moon aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
+          )}
+        </button>
         <button
           type="button"
           onClick={() => void logout().catch(() => undefined)}

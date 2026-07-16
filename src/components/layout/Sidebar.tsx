@@ -5,6 +5,7 @@ import {
   BarChart3,
   Boxes,
   Building2,
+  ChevronLeft,
   ClipboardList,
   Factory,
   LayoutDashboard,
@@ -16,7 +17,7 @@ import {
   X,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 
 interface NavItem {
@@ -61,10 +62,10 @@ const NAV_GROUPS: NavGroup[] = [
 
 const ADMIN_GROUP: NavGroup = {
   label: "Administração",
-  items: [{ to: "/usuarios/novo", label: "Gerenciar acessos", icon: UserCog }],
+  items: [{ to: "/usuarios/novo", label: "Novo usuário", icon: UserCog }],
 };
 
-const PREVIEW_OPEN_DELAY = 100;
+const PREVIEW_OPEN_DELAY = 250;
 const PREVIEW_CLOSE_DELAY = 150;
 
 function normalizeSearch(value: string) {
@@ -84,10 +85,6 @@ function filterGroups(groups: NavGroup[], query: string) {
       items: group.items.filter((item) => normalizeSearch(item.label).includes(normalizedQuery)),
     }))
     .filter((group) => group.items.length > 0);
-}
-
-function isCurrentItem(pathname: string, to: string) {
-  return to === "/" ? pathname === "/" : pathname === to || pathname.startsWith(`${to}/`);
 }
 
 interface SidebarProps {
@@ -205,30 +202,29 @@ function MobileSidebarContent({
 
 interface DesktopSidebarContentProps {
   groups: NavGroup[];
+  collapsed: boolean;
   expanded: boolean;
-  pinned: boolean;
   query: string;
   onQueryChange: (value: string) => void;
-  onTogglePinned: (event: MouseEvent<HTMLButtonElement>) => void;
-  onPinAndSearch: () => void;
+  onToggleCollapsed: (event: MouseEvent<HTMLButtonElement>) => void;
+  onSearchClick: () => void;
   firstControlRef: RefObject<HTMLButtonElement | null>;
   searchInputRef: RefObject<HTMLInputElement | null>;
-  onIconFocus: (element: HTMLButtonElement) => void;
+  onControlFocus: (element: HTMLElement) => void;
 }
 
 function DesktopSidebarContent({
   groups,
+  collapsed,
   expanded,
-  pinned,
   query,
   onQueryChange,
-  onTogglePinned,
-  onPinAndSearch,
+  onToggleCollapsed,
+  onSearchClick,
   firstControlRef,
   searchInputRef,
-  onIconFocus,
+  onControlFocus,
 }: DesktopSidebarContentProps) {
-  const { pathname } = useLocation();
   const filteredGroups = useMemo(() => filterGroups(groups, query), [groups, query]);
 
   return (
@@ -237,19 +233,39 @@ function DesktopSidebarContent({
         Navegação principal
       </h2>
 
-      <div className={`shrink-0 px-3 pb-3 pt-3 ${expanded ? "" : "flex justify-center"}`}>
-        <div className={expanded ? "relative w-full" : "relative"}>
+      <div className={`shrink-0 px-3 pb-3 pt-3 ${expanded ? "space-y-2" : "flex flex-col items-center gap-2"}`}>
+        <button
+          ref={firstControlRef}
+          type="button"
+          onClick={onToggleCollapsed}
+          onFocus={(event) => onControlFocus(event.currentTarget)}
+          className={`flex min-h-11 items-center rounded-md text-sidebar-text transition-colors hover:bg-sidebar-hover hover:text-sidebar-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:transition-none ${
+            expanded ? "w-full justify-between gap-2 px-3" : "min-w-11 justify-center"
+          }`}
+          aria-controls="desktop-sidebar"
+          aria-expanded={expanded}
+          aria-label={collapsed ? "Expandir menu" : "Recolher menu"}
+          title={expanded ? undefined : "Expandir menu"}
+        >
+          {expanded && <span className="truncate text-sm font-medium text-sidebar-text-strong">Menu</span>}
+          <ChevronLeft
+            aria-hidden="true"
+            className={`h-5 w-5 shrink-0 transition-transform duration-200 ease-out motion-reduce:transition-none ${
+              collapsed ? "rotate-180" : ""
+            }`}
+            strokeWidth={2}
+          />
+        </button>
+
+        <div className={`relative ${expanded ? "w-full" : ""}`}>
           <button
-            ref={firstControlRef}
             type="button"
-            onClick={onPinAndSearch}
-            onFocus={(event) => onIconFocus(event.currentTarget)}
+            onClick={onSearchClick}
+            onFocus={(event) => onControlFocus(event.currentTarget)}
             className={`z-10 flex min-h-11 min-w-11 items-center justify-center rounded-md text-sidebar-text transition-colors hover:bg-sidebar-hover hover:text-sidebar-text-strong focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:transition-none ${
               expanded ? "absolute left-0 top-0" : ""
             }`}
-            aria-controls="desktop-sidebar"
-            aria-expanded={expanded}
-            aria-label={pinned ? "Focar busca de seções" : "Fixar menu aberto e buscar uma seção"}
+            aria-label="Buscar seção"
             title={expanded ? undefined : "Buscar seção"}
           >
             <Search aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
@@ -281,44 +297,28 @@ function DesktopSidebarContent({
             <h3 className={expanded ? "px-3 pb-1 text-xs font-medium text-sidebar-text" : "sr-only"}>{group.label}</h3>
             {group.items.map((item) => {
               const Icon = item.icon;
-              const isActive = isCurrentItem(pathname, item.to);
 
               return (
-                <div key={item.to} className={`flex min-h-11 items-stretch ${expanded ? "gap-1" : "justify-center"}`}>
-                  <button
-                    type="button"
-                    onClick={onTogglePinned}
-                    onFocus={(event) => onIconFocus(event.currentTarget)}
-                    className={`flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:transition-none ${
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.to === "/"}
+                  onFocus={(event) => onControlFocus(event.currentTarget)}
+                  className={({ isActive }) =>
+                    `flex min-h-11 items-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:transition-none ${
+                      expanded ? "gap-3 px-3 py-2" : "min-w-11 justify-center px-0 py-2"
+                    } ${
                       isActive
                         ? "bg-action text-surface"
                         : "text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-text-strong"
-                    }`}
-                    aria-controls="desktop-sidebar"
-                    aria-expanded={expanded}
-                    aria-pressed={pinned}
-                    aria-label={pinned ? `Recolher menu; ${item.label}` : `Fixar menu aberto; ${item.label}`}
-                    title={expanded ? undefined : item.label}
-                  >
-                    <Icon aria-hidden="true" className="h-5 w-5" strokeWidth={2} />
-                  </button>
-
-                  {expanded && (
-                    <NavLink
-                      to={item.to}
-                      end={item.to === "/"}
-                      className={({ isActive: linkIsActive }) =>
-                        `flex min-h-11 min-w-0 flex-1 items-center rounded-md px-2 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-sidebar motion-reduce:transition-none ${
-                          linkIsActive
-                            ? "bg-action text-surface"
-                            : "text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-text-strong"
-                        }`
-                      }
-                    >
-                      <span className="truncate">{item.label}</span>
-                    </NavLink>
-                  )}
-                </div>
+                    }`
+                  }
+                  aria-label={expanded ? undefined : item.label}
+                  title={expanded ? undefined : item.label}
+                >
+                  <Icon aria-hidden="true" className="h-5 w-5 shrink-0" strokeWidth={2} />
+                  {expanded && <span className="truncate">{item.label}</span>}
+                </NavLink>
               );
             })}
           </div>
@@ -360,15 +360,14 @@ export function Sidebar({
   const desktopAsideRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const desktopSearchRef = useRef<HTMLInputElement>(null);
-  const lastDesktopControlRef = useRef<HTMLButtonElement | null>(null);
+  const lastDesktopControlRef = useRef<HTMLElement | null>(null);
   const openTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pointerInsideRef = useRef(false);
   const focusInsideRef = useRef(false);
   const shouldFocusSearchRef = useRef(false);
 
-  const pinned = !collapsed;
-  const expanded = pinned || previewOpen;
+  const expanded = !collapsed || previewOpen;
 
   const clearPreviewTimers = useCallback(() => {
     if (openTimerRef.current) clearTimeout(openTimerRef.current);
@@ -422,11 +421,11 @@ export function Sidebar({
     schedulePreviewClose();
   }
 
-  function handleIconFocus(element: HTMLButtonElement) {
+  function handleControlFocus(element: HTMLElement) {
     lastDesktopControlRef.current = element;
   }
 
-  function handleTogglePinned(event: MouseEvent<HTMLButtonElement>) {
+  function handleToggleCollapsed(event: MouseEvent<HTMLButtonElement>) {
     if (collapsed) {
       clearPreviewTimers();
       setPreviewOpen(false);
@@ -441,12 +440,12 @@ export function Sidebar({
     );
   }
 
-  function handlePinAndSearch() {
+  function handleSearchClick() {
     shouldFocusSearchRef.current = true;
     if (collapsed) {
+      // Abre o preview temporário (não altera o estado persistido de recolhido/expandido).
       clearPreviewTimers();
-      setPreviewOpen(false);
-      onCollapsedChange(false);
+      setPreviewOpen(true);
     } else {
       window.requestAnimationFrame(() => desktopSearchRef.current?.focus());
     }
@@ -465,11 +464,11 @@ export function Sidebar({
   }
 
   useEffect(() => {
-    if (!collapsed && shouldFocusSearchRef.current) {
+    if (expanded && shouldFocusSearchRef.current) {
       shouldFocusSearchRef.current = false;
       window.requestAnimationFrame(() => desktopSearchRef.current?.focus());
     }
-  }, [collapsed]);
+  }, [expanded]);
 
   useEffect(() => () => clearPreviewTimers(), [clearPreviewTimers]);
 
@@ -560,20 +559,24 @@ export function Sidebar({
           onBlurCapture={handleBlurCapture}
           onKeyDown={handleDesktopKeyDown}
           className={`flex h-full min-h-0 flex-col overflow-hidden bg-sidebar text-sidebar-text transition-[width] duration-200 ease-out motion-reduce:transition-none ${
-            collapsed && previewOpen ? "absolute inset-y-0 left-0 z-30 w-64" : collapsed ? "w-[4.5rem]" : "w-64"
+            collapsed && previewOpen
+              ? "absolute inset-y-0 left-0 z-30 w-64 border-r border-sidebar-text/25"
+              : collapsed
+                ? "w-[4.5rem]"
+                : "w-64"
           }`}
         >
           <DesktopSidebarContent
             groups={groups}
+            collapsed={collapsed}
             expanded={expanded}
-            pinned={pinned}
             query={query}
             onQueryChange={setQuery}
-            onTogglePinned={handleTogglePinned}
-            onPinAndSearch={handlePinAndSearch}
+            onToggleCollapsed={handleToggleCollapsed}
+            onSearchClick={handleSearchClick}
             firstControlRef={desktopFirstControlRef}
             searchInputRef={desktopSearchRef}
-            onIconFocus={handleIconFocus}
+            onControlFocus={handleControlFocus}
           />
         </aside>
       </div>

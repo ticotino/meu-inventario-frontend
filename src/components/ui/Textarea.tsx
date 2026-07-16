@@ -22,7 +22,6 @@ export function Textarea({ id, label, hint, error, rows = 3, ...rest }: Textarea
             <span aria-hidden="true" className="ml-0.5 text-danger">
               *
             </span>
-            <span className="sr-only"> (obrigatório)</span>
           </>
         )}
       </label>

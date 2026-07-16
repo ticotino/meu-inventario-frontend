@@ -24,7 +24,6 @@ export function Select({ id, label, hideLabel = false, hint, error, children, ..
             <span aria-hidden="true" className="ml-0.5 text-danger">
               *
             </span>
-            <span className="sr-only"> (obrigatório)</span>
           </>
         )}
       </label>

@@ -135,6 +135,24 @@ The palette is a restrained neutral scale (slate) with one accent (blue) and one
 ### Named Rules
 **The One Accent Rule.** Blue appears only on things you can act on or that are currently active: a submit button, the active nav item, a focus ring. If it's not clickable or current, it isn't blue.
 
+### Dark Mode
+
+Every color above is a CSS custom property (`--color-*`), so dark mode is a token swap, not a second design: the same hue families (slate neutrals, blue accent, red danger, emerald success) are re-expressed at darker/lighter steps, never inverted into an unrelated palette. Depth comes from surface lightness steps (page darkest, surface one step lighter, no shadow needed to read as "elevated"), not from the light-mode Card Lift shadow, which barely registers on a dark canvas.
+
+**Activation.** Two mechanisms, layered: automatically via `prefers-color-scheme: dark` when the visitor has no saved preference, and manually via a `data-theme="light"|"dark"` attribute on `<html>`, toggled from the sun/moon control in the Topbar and persisted to `localStorage` (`meu-inventario:theme`) — the same pattern the sidebar's collapsed state uses. An inline script in `index.html` applies a saved preference before first paint to avoid a flash of the wrong theme.
+
+**Dark tokens:**
+- `--color-action`: `#60a5fa` (Ledger Blue lightened) — `--color-action-hover`: `#93c5fd` (brightens further on hover/press, since a dark canvas reads hover feedback as "lighter", not "darker" the way white paper does).
+- `--color-ink`: `#f1f5f9` — `--color-body`: `#cbd5e1` — `--color-muted`: `#94a3b8`.
+- `--color-border`: `#334155` (subtle divider, same low-contrast-by-design role as the light-mode border) — `--color-control-border`: `#94a3b8` (the input/UI-boundary token, kept well above the 3:1 non-text floor).
+- `--color-page`: `#0f172a` (the former sidebar-only dark tone now doubles as the app canvas) — `--color-surface`: `#1e293b` (one step lighter — cards, the topbar, and inputs sit "above" the page).
+- `--color-sidebar`: `#0f172a` (unchanged — it already was this app's dark surface) — `--color-sidebar-hover`: `#334155` — sidebar text tokens unchanged (`#cbd5e1` / `#f1f5f9`), since their contrast against `#0f172a` doesn't move.
+- `--color-danger`: `#f87171` — `--color-danger-strong`: `#fca5a5` — `--color-danger-bg`: `#450a0a`.
+- `--color-success`: `#34d399` — `--color-success-bg`: `#022c22`.
+- `--shadow-card`: replaced with a 1px translucent white hairline (`0 0 0 1px rgb(255 255 255 / 0.06)`) instead of the light-mode drop shadow, which would be invisible against a dark background.
+
+All pairs meet the same bars as light mode (body text ≥4.5:1, UI-component boundaries ≥3:1); `--color-muted` in particular carries real margin in dark mode (≈5.7–6.9:1) rather than sitting at the light-mode floor.
+
 ## 3. Typography
 
 **Body Font:** system-ui, "Segoe UI", Roboto, sans-serif (no separate display face)

@@ -69,7 +69,7 @@ describe("BeneficiamentoDetalhe — ações de status", () => {
     renderDetalhe();
 
     await user.click(screen.getByRole("button", { name: "Marcar como recebido" }));
-    await user.type(screen.getByLabelText("Quantidade recebida"), "150");
+    await user.type(screen.getByLabelText(/Quantidade recebida/), "150");
     await user.click(screen.getByRole("button", { name: "Confirmar recebimento" }));
 
     expect(await screen.findByText(/Não é possível receber mais do que foi enviado/)).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe("BeneficiamentoDetalhe — ações de status", () => {
     renderDetalhe();
 
     await user.click(screen.getByRole("button", { name: "Marcar como recebido" }));
-    await user.type(screen.getByLabelText("Quantidade recebida"), "80");
+    await user.type(screen.getByLabelText(/Quantidade recebida/), "80");
 
     expect(await screen.findByText(/a menos que o enviado \(perda no processo\)/)).toBeInTheDocument();
 
