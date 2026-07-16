@@ -39,6 +39,14 @@ export function Input({
     <div>
       <label htmlFor={id} className={hideLabel ? "sr-only" : labelClass}>
         {label}
+        {rest.required && (
+          <>
+            <span aria-hidden="true" className="ml-0.5 text-danger">
+              *
+            </span>
+            <span className="sr-only"> (obrigatório)</span>
+          </>
+        )}
       </label>
       {endAdornment ? (
         <div className="relative">

@@ -1,9 +1,10 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Button } from "../components/ui/Button";
+import { ConfirmInline } from "../components/ui/ConfirmInline";
 import { EmptyState } from "../components/ui/EmptyState";
 import { ErrorState } from "../components/ui/ErrorState";
-import { feedbackErrorClass } from "../components/ui/formStyles";
+import { FormErrorBanner } from "../components/ui/FormErrorBanner";
 import { Input } from "../components/ui/Input";
 import { PageHeader } from "../components/ui/PageHeader";
 import { SuccessBanner } from "../components/ui/SuccessBanner";
@@ -34,7 +35,9 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
   const sugestao = Number(item.quantidade_sugerida) > 0 ? item.quantidade_sugerida : "";
   const [quantidade, setQuantidade] = useState(item.quantidade_solicitada ?? sugestao);
   const [observacoes, setObservacoes] = useState("");
-  const [erro, setErro] = useState<string | null>(null);
+  const [erroQuantidade, setErroQuantidade] = useState<string | null>(null);
+  const [erroApi, setErroApi] = useState<string | null>(null);
+  const quantidadeRef = useRef<HTMLInputElement>(null);
   const criar = useCriarSolicitacaoCompra();
   const receber = useReceberSolicitacaoCompra();
   const cancelar = useCancelarSolicitacaoCompra();
@@ -45,10 +48,12 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
     event.preventDefault();
     const valor = numeroPositivo(quantidade);
     if (valor === null) {
-      setErro("Informe uma quantidade maior que zero.");
+      setErroQuantidade("Informe uma quantidade maior que zero.");
+      quantidadeRef.current?.focus();
       return;
     }
-    setErro(null);
+    setErroQuantidade(null);
+    setErroApi(null);
     try {
       await criar.mutateAsync({
         materia_prima_id: item.materia_prima_id,
@@ -57,7 +62,7 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
       });
       onFeedback(`Solicitação de ${item.codigo} criada.`);
     } catch (error) {
-      setErro(getApiErrorMessage(error, "Não foi possível criar a solicitação."));
+      setErroApi(getApiErrorMessage(error, "Não foi possível criar a solicitação."));
     }
   }
 
@@ -65,26 +70,28 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
     event.preventDefault();
     const valor = numeroPositivo(quantidade);
     if (valor === null || !item.solicitacao_id) {
-      setErro("Informe a quantidade efetivamente recebida.");
+      setErroQuantidade("Informe a quantidade efetivamente recebida.");
+      quantidadeRef.current?.focus();
       return;
     }
-    setErro(null);
+    setErroQuantidade(null);
+    setErroApi(null);
     try {
       await receber.mutateAsync({ id: item.solicitacao_id, quantidade_recebida: valor });
       onFeedback(`Recebimento de ${item.codigo} registrado no estoque.`);
     } catch (error) {
-      setErro(getApiErrorMessage(error, "Não foi possível registrar o recebimento."));
+      setErroApi(getApiErrorMessage(error, "Não foi possível registrar o recebimento."));
     }
   }
 
   async function cancelarSolicitacao() {
     if (!item.solicitacao_id) return;
-    setErro(null);
+    setErroApi(null);
     try {
       await cancelar.mutateAsync(item.solicitacao_id);
       onFeedback(`Solicitação de ${item.codigo} cancelada.`);
     } catch (error) {
-      setErro(getApiErrorMessage(error, "Não foi possível cancelar a solicitação."));
+      setErroApi(getApiErrorMessage(error, "Não foi possível cancelar a solicitação."));
     }
   }
 
@@ -120,6 +127,7 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
         <div className="grid gap-3 sm:grid-cols-[minmax(0,16rem)_1fr] sm:items-end">
           <Input
             id={`quantidade-compra-${item.materia_prima_id}`}
+            ref={quantidadeRef}
             label={temSolicitacao ? "Quantidade recebida" : "Quantidade a solicitar"}
             type="number"
             min="0.001"
@@ -128,15 +136,22 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
             value={quantidade}
             onChange={(event) => setQuantidade(event.target.value)}
             hint={temSolicitacao ? "Informe a quantidade que chegou; ela pode ser diferente da solicitada." : `Unidade: ${item.unidade_medida}.`}
+            error={erroQuantidade ?? undefined}
           />
           <div className="flex flex-wrap gap-2">
             <Button type="submit" loading={temSolicitacao ? receber.isPending : criar.isPending} loadingText="Salvando…">
               {temSolicitacao ? "Confirmar recebimento" : "Criar solicitação"}
             </Button>
             {temSolicitacao && (
-              <Button type="button" variant="danger" loading={cancelar.isPending} loadingText="Cancelando…" onClick={() => void cancelarSolicitacao()}>
-                Cancelar solicitação
-              </Button>
+              <ConfirmInline
+                triggerLabel="Cancelar solicitação"
+                triggerVariant="danger"
+                question="Cancelar a solicitação de compra?"
+                danger
+                loading={cancelar.isPending}
+                loadingText="Cancelando…"
+                onConfirm={cancelarSolicitacao}
+              />
             )}
           </div>
         </div>
@@ -150,7 +165,7 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
             onChange={(event) => setObservacoes(event.target.value)}
           />
         )}
-        {erro && <p role="alert" className={feedbackErrorClass}>{erro}</p>}
+        <FormErrorBanner message={erroApi} />
         {processando && <span className="sr-only" aria-live="polite">Processando solicitação de {item.codigo}</span>}
       </form>
     </article>

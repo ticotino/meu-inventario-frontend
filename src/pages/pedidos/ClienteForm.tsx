@@ -94,6 +94,7 @@ export function ClienteForm({ cliente, onSuccess, onCancel }: ClienteFormProps) 
             id="cliente-nome"
             label="Nome"
             type="text"
+            autoComplete="off"
             required
             maxLength={160}
             error={errors.nome?.message}
@@ -121,6 +122,7 @@ export function ClienteForm({ cliente, onSuccess, onCancel }: ClienteFormProps) 
             id="cliente-email"
             label="E-mail"
             type="email"
+            autoComplete="off"
             maxLength={254}
             error={errors.email?.message}
             {...register("email")}

@@ -152,7 +152,7 @@ function MobileSidebarContent({
             onChange={(event) => onQueryChange(event.target.value)}
             placeholder="Buscar seção"
             autoComplete="off"
-            className="min-h-11 w-full rounded-md border border-sidebar-text/40 bg-sidebar-hover py-2 pl-10 pr-3 text-sm text-sidebar-text-strong placeholder:text-sidebar-text transition-colors hover:border-sidebar-text/60 focus:border-action focus:outline-none focus:ring-2 focus:ring-action focus:ring-offset-2 focus:ring-offset-sidebar motion-reduce:transition-none"
+            className="min-h-11 w-full rounded-md border border-sidebar-text/55 bg-sidebar-hover py-2 pl-10 pr-3 text-sm text-sidebar-text-strong placeholder:text-sidebar-text transition-colors hover:border-sidebar-text/70 focus:border-action focus:outline-none focus:ring-2 focus:ring-action focus:ring-offset-2 focus:ring-offset-sidebar motion-reduce:transition-none"
           />
         </div>
       </div>
@@ -160,7 +160,7 @@ function MobileSidebarContent({
       <nav aria-label="Navegação principal" className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 pb-5">
         {filteredGroups.map((group) => (
           <div key={group.label} className="space-y-1">
-            <h2 className="px-3 pb-1 text-xs font-medium text-sidebar-text">{group.label}</h2>
+            <h3 className="px-3 pb-1 text-xs font-medium text-sidebar-text">{group.label}</h3>
             {group.items.map((item) => {
               const Icon = item.icon;
 
@@ -268,7 +268,7 @@ function DesktopSidebarContent({
                 onChange={(event) => onQueryChange(event.target.value)}
                 placeholder="Buscar seção"
                 autoComplete="off"
-                className="min-h-11 w-full rounded-md border border-sidebar-text/40 bg-sidebar-hover py-2 pl-11 pr-3 text-sm text-sidebar-text-strong placeholder:text-sidebar-text transition-colors hover:border-sidebar-text/60 focus:border-action focus:outline-none focus:ring-2 focus:ring-action focus:ring-offset-2 focus:ring-offset-sidebar motion-reduce:transition-none"
+                className="min-h-11 w-full rounded-md border border-sidebar-text/55 bg-sidebar-hover py-2 pl-11 pr-3 text-sm text-sidebar-text-strong placeholder:text-sidebar-text transition-colors hover:border-sidebar-text/70 focus:border-action focus:outline-none focus:ring-2 focus:ring-action focus:ring-offset-2 focus:ring-offset-sidebar motion-reduce:transition-none"
               />
             </>
           )}
@@ -278,7 +278,7 @@ function DesktopSidebarContent({
       <nav aria-label="Navegação principal" className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 pb-5">
         {filteredGroups.map((group) => (
           <div key={group.label} className="space-y-1">
-            <h2 className={expanded ? "px-3 pb-1 text-xs font-medium text-sidebar-text" : "sr-only"}>{group.label}</h2>
+            <h3 className={expanded ? "px-3 pb-1 text-xs font-medium text-sidebar-text" : "sr-only"}>{group.label}</h3>
             {group.items.map((item) => {
               const Icon = item.icon;
               const isActive = isCurrentItem(pathname, item.to);

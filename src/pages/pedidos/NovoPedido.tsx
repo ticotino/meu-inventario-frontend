@@ -53,6 +53,9 @@ export function NovoPedido() {
   useDocumentTitle("Novo pedido");
   const navigate = useNavigate();
   const [erro, setErro] = useState<string | null>(null);
+  // Anúncio para leitores de tela ao adicionar/remover linhas de produto;
+  // o número do item muda a cada ação, então mensagens repetidas são anunciadas.
+  const [anuncioItens, setAnuncioItens] = useState("");
   const { data: clientes, isPending: carregandoClientes } = useClientes();
   const { data: produtos, isPending: carregandoProdutos } = useProdutos({ ativo: true });
   const criar = useCreatePedido();
@@ -226,6 +229,7 @@ export function NovoPedido() {
                       min="0"
                       inputMode="decimal"
                       required
+                      aria-label={`Quantidade do produto ${i + 1}`}
                       hint={
                         produtoSelecionado
                           ? `Disponível: ${formatarQuantidade(produtoSelecionado.quantidade_disponivel, "unidade")}`
@@ -238,7 +242,10 @@ export function NovoPedido() {
                   <div className="sm:pt-6">
                     <Button
                       variant="ghost-danger"
-                      onClick={() => remove(i)}
+                      onClick={() => {
+                        remove(i);
+                        setAnuncioItens(`Produto ${i + 1} removido`);
+                      }}
                       disabled={fields.length === 1}
                       aria-label={`Remover produto ${i + 1}`}
                     >
@@ -253,9 +260,19 @@ export function NovoPedido() {
                 {errors.itens.root.message}
               </p>
             )}
-            <Button variant="ghost" onClick={() => append({ produto_id: "", quantidade: "" })} disabled={semProdutos}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                append({ produto_id: "", quantidade: "" });
+                setAnuncioItens(`Produto ${fields.length + 1} adicionado`);
+              }}
+              disabled={semProdutos}
+            >
               + Adicionar produto
             </Button>
+            <p aria-live="polite" className="sr-only">
+              {anuncioItens}
+            </p>
           </fieldset>
 
           <Textarea

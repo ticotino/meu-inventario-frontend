@@ -26,7 +26,7 @@ export function Topbar({
           type="button"
           onClick={onMenuClick}
           className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-md text-body transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 motion-reduce:transition-none"
-          aria-label="Abrir menu"
+          aria-label={menuExpanded ? "Fechar menu" : "Abrir menu"}
           aria-controls="mobile-sidebar"
           aria-expanded={menuExpanded}
         >
@@ -36,6 +36,7 @@ export function Topbar({
         <Link
           to="/"
           aria-label="Ir para o dashboard"
+          inert={menuExpanded ? true : undefined}
           className="flex min-h-11 min-w-0 items-center gap-2 rounded-md px-2 text-ink transition-colors hover:bg-page focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 motion-reduce:transition-none"
         >
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-sidebar text-sidebar-text-strong">
@@ -46,6 +47,7 @@ export function Topbar({
       </div>
 
       <div
+        inert={menuExpanded ? true : undefined}
         className={`hidden shrink-0 items-center transition-[width] duration-200 ease-out md:flex motion-reduce:transition-none ${
           sidebarCollapsed ? "w-[4.5rem]" : "w-64"
         }`}
@@ -65,7 +67,10 @@ export function Topbar({
         </Link>
       </div>
 
-      <div className="ml-auto flex min-w-0 items-center gap-2 px-3 py-2 sm:gap-4 sm:px-4 md:px-6">
+      <div
+        inert={menuExpanded ? true : undefined}
+        className="ml-auto flex min-w-0 items-center gap-2 px-3 py-2 sm:gap-4 sm:px-4 md:px-6"
+      >
         <div className="hidden min-w-0 text-right sm:block">
           <p className="max-w-[min(12rem,40vw)] truncate text-sm font-medium text-ink" title={usuario?.nome}>
             {usuario?.nome}

@@ -230,6 +230,7 @@ export function Cadastro() {
             id="invite-account-email"
             label="E-mail convidado"
             type="email"
+            autoComplete="username"
             readOnly
             value={invite.email}
             hint={`O convite expira em ${new Intl.DateTimeFormat("pt-BR", {

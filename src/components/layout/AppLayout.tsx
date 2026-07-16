@@ -16,7 +16,6 @@ export function AppLayout() {
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const desktopFirstControlRef = useRef<HTMLButtonElement>(null);
   const mainRef = useRef<HTMLElement>(null);
-  const openSidebar = useCallback(() => setSidebarOpen(true), []);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
   const toggleSidebar = useCallback(() => setSidebarOpen((value) => !value), []);
   const changeSidebarCollapsed = useCallback((collapsed: boolean) => setSidebarCollapsed(collapsed), []);
@@ -29,8 +28,18 @@ export function AppLayout() {
     }
   }, [sidebarCollapsed]);
 
+  const firstRenderRef = useRef(true);
+
   useEffect(() => {
     mainRef.current?.scrollTo({ top: 0 });
+
+    // Evita roubar o foco no carregamento inicial; só move o foco em navegações SPA.
+    if (firstRenderRef.current) {
+      firstRenderRef.current = false;
+      return;
+    }
+
+    mainRef.current?.focus({ preventScroll: true });
   }, [location.pathname]);
 
   return (

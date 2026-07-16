@@ -19,6 +19,14 @@ export function Select({ id, label, hideLabel = false, hint, error, children, ..
     <div>
       <label htmlFor={id} className={hideLabel ? "sr-only" : labelClass}>
         {label}
+        {rest.required && (
+          <>
+            <span aria-hidden="true" className="ml-0.5 text-danger">
+              *
+            </span>
+            <span className="sr-only"> (obrigatório)</span>
+          </>
+        )}
       </label>
       <select
         id={id}

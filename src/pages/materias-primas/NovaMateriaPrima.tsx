@@ -4,11 +4,11 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Button } from "../../components/ui/Button";
+import { FormErrorBanner } from "../../components/ui/FormErrorBanner";
 import { Input } from "../../components/ui/Input";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { Select } from "../../components/ui/Select";
 import { Textarea } from "../../components/ui/Textarea";
-import { feedbackErrorClass } from "../../components/ui/formStyles";
 import { useFabricantes } from "../../hooks/useFabricantes";
 import { useCreateMateriaPrima } from "../../hooks/useMateriasPrimas";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
@@ -217,11 +217,7 @@ export function NovaMateriaPrima() {
             {...register("observacoes")}
           />
 
-          {erro && (
-            <p role="alert" className={feedbackErrorClass}>
-              {erro}
-            </p>
-          )}
+          <FormErrorBanner message={erro} />
 
           <Button type="submit" loading={isSubmitting} loadingText="Registrando..." disabled={semFabricantes}>
             Registrar matéria-prima

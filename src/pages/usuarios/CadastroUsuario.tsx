@@ -152,7 +152,7 @@ export function CadastroUsuario() {
                 id="admin-email"
                 label="E-mail"
                 type="email"
-                autoComplete="email"
+                autoComplete="username"
                 required
                 maxLength={160}
                 error={adminForm.formState.errors.email?.message}

@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
+import { ConfirmInline } from "../../components/ui/ConfirmInline";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { Input } from "../../components/ui/Input";
 import { PageHeader } from "../../components/ui/PageHeader";
@@ -169,13 +170,20 @@ function PrazoPedido({
   );
 }
 
+// Alvo de foco após ações que trocam o status: os gatilhos de confirmação saem
+// da tela e o foco cairia no body sem um destino explícito.
+const STATUS_PEDIDO_DOM_ID = "pedido-status-atual";
+
 function AcoesStatus({ pedidoId, status }: { pedidoId: string; status: string }) {
-  const [confirmandoCancelar, setConfirmandoCancelar] = useState(false);
-  const [confirmandoAtender, setConfirmandoAtender] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const erroRef = useRef<HTMLParagraphElement>(null);
   const atender = useAtenderPedido();
   const cancelar = useCancelarPedido();
   const faturar = useFaturarPedido();
+
+  useEffect(() => {
+    if (erro) erroRef.current?.focus();
+  }, [erro]);
 
   async function executar(acao: "atender" | "cancelar" | "faturar") {
     setErro(null);
@@ -183,8 +191,9 @@ function AcoesStatus({ pedidoId, status }: { pedidoId: string; status: string })
       if (acao === "atender") await atender.mutateAsync(pedidoId);
       if (acao === "cancelar") await cancelar.mutateAsync(pedidoId);
       if (acao === "faturar") await faturar.mutateAsync(pedidoId);
-      setConfirmandoCancelar(false);
-      setConfirmandoAtender(false);
+      // O botão acionado deixa de existir quando o status muda; levamos o
+      // foco para o status no resumo, que reflete o novo estado do pedido.
+      document.getElementById(STATUS_PEDIDO_DOM_ID)?.focus();
     } catch (error) {
       setErro(getApiErrorMessage(error, "Não foi possível atualizar o pedido."));
     }
@@ -200,37 +209,14 @@ function AcoesStatus({ pedidoId, status }: { pedidoId: string; status: string })
             <Link to={`/romaneios/novo?pedido=${pedidoId}`} className={buttonClasses("primary")}>
               Gerar romaneio
             </Link>
-            {confirmandoAtender ? (
-              <span className="inline-flex flex-wrap items-center gap-1 text-sm text-body">
-                Atender sem romaneio? Depois não será mais possível gerar um.
-                <Button
-                  variant="secondary"
-                  className="min-h-9 px-2 py-1"
-                  onClick={() => void executar("atender")}
-                  disabled={cancelar.isPending}
-                  loading={atender.isPending}
-                  loadingText="..."
-                >
-                  Sim
-                </Button>
-                <Button
-                  variant="secondary"
-                  className="min-h-9 px-2 py-1"
-                  onClick={() => setConfirmandoAtender(false)}
-                  disabled={atender.isPending}
-                >
-                  Não
-                </Button>
-              </span>
-            ) : (
-              <Button
-                variant="secondary"
-                onClick={() => setConfirmandoAtender(true)}
-                disabled={cancelar.isPending}
-              >
-                Marcar como atendido
-              </Button>
-            )}
+            <ConfirmInline
+              triggerLabel="Marcar como atendido"
+              question="Atender sem romaneio? Depois não será mais possível gerar um."
+              disabled={cancelar.isPending}
+              loading={atender.isPending}
+              restoreFocusOnConfirm={false}
+              onConfirm={() => executar("atender")}
+            />
           </>
         )}
         {status === "atendido" && (
@@ -242,41 +228,21 @@ function AcoesStatus({ pedidoId, status }: { pedidoId: string; status: string })
             Marcar como faturado
           </Button>
         )}
-        {status === "pendente" &&
-          (confirmandoCancelar ? (
-            <span className="inline-flex items-center gap-1 text-sm text-body">
-              Cancelar pedido?
-              <Button
-                variant="danger"
-                className="min-h-9 px-2 py-1"
-                onClick={() => void executar("cancelar")}
-                disabled={cancelar.isPending}
-                loading={cancelar.isPending}
-                loadingText="..."
-              >
-                Sim
-              </Button>
-              <Button
-                variant="secondary"
-                className="min-h-9 px-2 py-1"
-                onClick={() => setConfirmandoCancelar(false)}
-                disabled={cancelar.isPending}
-              >
-                Não
-              </Button>
-            </span>
-          ) : (
-            <Button
-              variant="ghost-danger"
-              onClick={() => setConfirmandoCancelar(true)}
-              disabled={atender.isPending}
-            >
-              Cancelar pedido
-            </Button>
-          ))}
+        {status === "pendente" && (
+          <ConfirmInline
+            triggerLabel="Cancelar pedido"
+            triggerVariant="ghost-danger"
+            question="Cancelar pedido?"
+            danger
+            disabled={atender.isPending}
+            loading={cancelar.isPending}
+            restoreFocusOnConfirm={false}
+            onConfirm={() => executar("cancelar")}
+          />
+        )}
       </div>
       {erro && (
-        <p role="alert" className={feedbackErrorClass}>
+        <p ref={erroRef} tabIndex={-1} role="alert" className={feedbackErrorClass}>
           {erro}
         </p>
       )}
@@ -338,7 +304,13 @@ export function PedidoDetalhe() {
           <ResumoItem
             rotulo="Status"
             valor={
-              <span className={STATUS_PEDIDO_CLASS[pedido.status]}>{STATUS_PEDIDO_LABEL[pedido.status]}</span>
+              <span
+                id={STATUS_PEDIDO_DOM_ID}
+                tabIndex={-1}
+                className={STATUS_PEDIDO_CLASS[pedido.status]}
+              >
+                {STATUS_PEDIDO_LABEL[pedido.status]}
+              </span>
             }
             destaque
           />

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Button } from "../components/ui/Button";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -12,7 +12,7 @@ import { useDocumentTitle } from "../hooks/useDocumentTitle";
 import { useRelatorioConsumo, useRelatorioPedidos, useRelatorioProducao } from "../hooks/useRelatorios";
 import { getApiErrorMessage } from "../services/api";
 import type { RelatorioConsumoItem, RelatorioPedidosItem, RelatorioPeriodo, RelatorioProducaoItem } from "../types/relatorio";
-import { formatarMoeda, formatarQuantidade } from "../utils/format";
+import { formatarData, formatarMoeda, formatarQuantidade } from "../utils/format";
 
 function formatarIsoLocal(data: Date) {
   const ano = data.getFullYear();
@@ -51,6 +51,24 @@ export function Relatorios() {
   const producao = useRelatorioProducao(periodo);
   const pedidos = useRelatorioPedidos(periodo);
 
+  // Região viva local: os três relatórios trocam juntos ao aplicar o período,
+  // então um único anúncio resume a atualização (a carga inicial não é anunciada).
+  const statusRelatoriosRef = useRef<HTMLParagraphElement>(null);
+  const periodoAnunciadoRef = useRef<RelatorioPeriodo | null>(null);
+  const carregandoRelatorios = consumo.isPending || producao.isPending || pedidos.isPending;
+  const erroRelatorios = consumo.isError || producao.isError || pedidos.isError;
+
+  useEffect(() => {
+    if (carregandoRelatorios) return;
+    if (periodoAnunciadoRef.current === periodo) return;
+    const cargaInicial = periodoAnunciadoRef.current === null;
+    periodoAnunciadoRef.current = periodo;
+    if (cargaInicial || erroRelatorios) return;
+    if (statusRelatoriosRef.current) {
+      statusRelatoriosRef.current.textContent = `Relatórios atualizados para o período de ${formatarData(periodo.inicio)} a ${formatarData(periodo.fim)}.`;
+    }
+  }, [carregandoRelatorios, erroRelatorios, periodo]);
+
   function aplicarPeriodo(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const erro = validarPeriodo(rascunho);
@@ -86,6 +104,8 @@ export function Relatorios() {
       </div>
       {erroPeriodo && <p role="alert" className="mt-3 text-sm text-danger">{erroPeriodo}</p>}
     </form>
+
+    <p ref={statusRelatoriosRef} className="sr-only" aria-live="polite" />
 
     <Secao id="relatorio-consumo" titulo="Consumo de matérias-primas" descricao="Quantidades consumidas nas produções do período. O custo fica indisponível quando falta valor unitário.">
       {consumo.isPending ? <TableSkeleton linhas={4} /> : consumo.isError ? <ErrorState mensagem={getApiErrorMessage(consumo.error, "Não foi possível carregar o consumo.")} onRetry={() => void consumo.refetch()} /> : consumo.data.length === 0 ? <EmptyState titulo="Nenhum consumo no período" descricao="Não há matérias-primas consumidas nas datas selecionadas." /> : <ResponsiveTable items={consumo.data} columns={colunasConsumo} getRowKey={(item) => item.materia_prima_id} caption="Consumo de matérias-primas no período" mobileCard={(item) => <div className="space-y-1"><p className="font-medium text-ink">{item.nome_tecido}</p><p className="text-sm tabular-nums text-body">{formatarQuantidade(item.quantidade_consumida, item.unidade_medida)} · {item.total_producoes} produções</p><p className="text-sm tabular-nums text-muted">Custo: {formatarMoeda(item.custo_total)}</p></div>} />}

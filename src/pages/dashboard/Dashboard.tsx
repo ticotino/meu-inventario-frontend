@@ -43,7 +43,13 @@ export function Dashboard() {
         Confira as pendências mais importantes antes de voltar à operação.
       </p>
 
-      <section aria-labelledby="dashboard-pendencias" className="mt-6">
+      {/* Enquanto carrega, os tiles mostram "—" sem aviso visual; esta região
+          conta aos leitores de tela quando os números chegam. */}
+      <p role="status" className="sr-only">
+        {metricas ? "Métricas atualizadas." : "Carregando métricas..."}
+      </p>
+
+      <section aria-labelledby="dashboard-pendencias" className="mt-6" aria-busy={!metricas}>
         <h2 id="dashboard-pendencias" className="text-base font-semibold text-ink">
           Pendências
         </h2>
@@ -73,7 +79,7 @@ export function Dashboard() {
         </div>
       </section>
 
-      <section aria-labelledby="dashboard-atividade" className="mt-6 max-w-md">
+      <section aria-labelledby="dashboard-atividade" className="mt-6 max-w-md" aria-busy={!metricas}>
         <h2 id="dashboard-atividade" className="text-base font-semibold text-ink">
           Atividade recente
         </h2>

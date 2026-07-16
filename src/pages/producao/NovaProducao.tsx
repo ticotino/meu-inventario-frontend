@@ -4,11 +4,11 @@ import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Button } from "../../components/ui/Button";
+import { FormErrorBanner } from "../../components/ui/FormErrorBanner";
 import { Input } from "../../components/ui/Input";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { Select } from "../../components/ui/Select";
 import { Textarea } from "../../components/ui/Textarea";
-import { feedbackErrorClass } from "../../components/ui/formStyles";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { useMateriasPrimas } from "../../hooks/useMateriasPrimas";
 import { useCreateProducao } from "../../hooks/useProducoes";
@@ -88,16 +88,20 @@ export function NovaProducao() {
     const vistos = new Set<string>();
     dados.itens.forEach((item, i) => {
       if (vistos.has(item.materia_prima_id)) {
-        setError(`itens.${i}.materia_prima_id`, { message: "Matéria-prima repetida" });
+        setError(`itens.${i}.materia_prima_id`, { message: "Matéria-prima repetida" }, { shouldFocus: true });
         temErroItem = true;
       }
       vistos.add(item.materia_prima_id);
 
       const mp = mpPorId.get(item.materia_prima_id);
       if (mp && Number(item.quantidade_consumida) > Number(mp.quantidade_disponivel)) {
-        setError(`itens.${i}.quantidade_consumida`, {
-          message: `Saldo insuficiente — disponível ${formatarQuantidade(mp.quantidade_disponivel, mp.unidade_medida)}`,
-        });
+        setError(
+          `itens.${i}.quantidade_consumida`,
+          {
+            message: `Saldo insuficiente — disponível ${formatarQuantidade(mp.quantidade_disponivel, mp.unidade_medida)}`,
+          },
+          { shouldFocus: true },
+        );
         temErroItem = true;
       }
     });
@@ -273,11 +277,7 @@ export function NovaProducao() {
             {...register("observacoes")}
           />
 
-          {erro && (
-            <p role="alert" className={feedbackErrorClass}>
-              {erro}
-            </p>
-          )}
+          <FormErrorBanner message={erro} />
 
           <Button type="submit" loading={isSubmitting} loadingText="Registrando..." disabled={semProdutos || semMps}>
             Registrar produção

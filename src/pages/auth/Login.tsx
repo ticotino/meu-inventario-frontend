@@ -115,7 +115,7 @@ export function Login() {
         >
           {usingRemembered && remembered ? (
             <>
-              <input type="hidden" {...form.register("email")} />
+              <input type="hidden" autoComplete="username" {...form.register("email")} />
               <div
                 role="group"
                 aria-label={`Conta lembrada de ${remembered.nome}`}
@@ -147,7 +147,7 @@ export function Login() {
               id="email"
               label="E-mail"
               type="email"
-              autoComplete="email"
+              autoComplete="username"
               required
               maxLength={254}
               error={form.formState.errors.email?.message}

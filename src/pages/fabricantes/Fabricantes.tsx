@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Button } from "../../components/ui/Button";
+import { ConfirmInline } from "../../components/ui/ConfirmInline";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { Input } from "../../components/ui/Input";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { ResponsiveTable } from "../../components/ui/ResponsiveTable";
 import type { Coluna } from "../../components/ui/ResponsiveTable";
+import { ResultsAnnouncer } from "../../components/ui/ResultsAnnouncer";
 import { SuccessBanner } from "../../components/ui/SuccessBanner";
 import { TableSkeleton } from "../../components/ui/TableSkeleton";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
@@ -19,58 +21,28 @@ type FormAberto = { modo: "criar" } | { modo: "editar"; fabricante: Fabricante }
 
 interface AcoesLinhaProps {
   fabricante: Fabricante;
-  confirmando: boolean;
   desativando: boolean;
   onEditar: () => void;
-  onIniciarDesativacao: () => void;
-  onConfirmarDesativacao: () => void;
-  onCancelarDesativacao: () => void;
+  onDesativar: () => Promise<void>;
 }
 
-function AcoesLinha({
-  fabricante,
-  confirmando,
-  desativando,
-  onEditar,
-  onIniciarDesativacao,
-  onConfirmarDesativacao,
-  onCancelarDesativacao,
-}: AcoesLinhaProps) {
-  if (confirmando) {
-    return (
-      <span className="inline-flex items-center gap-1 text-sm text-body">
-        Desativar?
-        <Button
-          variant="danger"
-          className="min-h-9 px-2 py-1"
-          onClick={onConfirmarDesativacao}
-          disabled={desativando}
-          loading={desativando}
-          loadingText="..."
-          aria-label={`Confirmar desativação de ${fabricante.nome}`}
-        >
-          Sim
-        </Button>
-        <Button
-          variant="secondary"
-          className="min-h-9 px-2 py-1"
-          onClick={onCancelarDesativacao}
-          disabled={desativando}
-          aria-label={`Cancelar desativação de ${fabricante.nome}`}
-        >
-          Não
-        </Button>
-      </span>
-    );
-  }
+function AcoesLinha({ fabricante, desativando, onEditar, onDesativar }: AcoesLinhaProps) {
   return (
     <span className="inline-flex items-center gap-1">
       <Button variant="ghost" onClick={onEditar} aria-label={`Editar ${fabricante.nome}`}>
         Editar
       </Button>
-      <Button variant="ghost-danger" onClick={onIniciarDesativacao} aria-label={`Desativar ${fabricante.nome}`}>
-        Desativar
-      </Button>
+      <ConfirmInline
+        triggerLabel="Desativar"
+        triggerAriaLabel={`Desativar ${fabricante.nome}`}
+        triggerVariant="ghost-danger"
+        question="Desativar?"
+        confirmAriaLabel={`Confirmar desativação de ${fabricante.nome}`}
+        cancelAriaLabel={`Cancelar desativação de ${fabricante.nome}`}
+        danger
+        loading={desativando}
+        onConfirm={onDesativar}
+      />
     </span>
   );
 }
@@ -80,7 +52,6 @@ export function Fabricantes() {
   const [busca, setBusca] = useState("");
   const buscaDebounced = useDebouncedValue(busca, 300);
   const [formAberto, setFormAberto] = useState<FormAberto>(null);
-  const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
   const [aviso, setAviso] = useState<{ mensagem: string; desfazerId?: string } | null>(null);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
 
@@ -97,7 +68,6 @@ export function Fabricantes() {
   function abrirEdicao(fabricante: Fabricante) {
     setAviso(null);
     setErroAcao(null);
-    setConfirmandoId(null);
     setFormAberto({ modo: "editar", fabricante });
   }
 
@@ -108,13 +78,12 @@ export function Fabricantes() {
   }
 
   async function confirmarDesativacao(fabricante: Fabricante) {
+    setAviso(null);
     setErroAcao(null);
     try {
       await desativar.mutateAsync(fabricante.id);
-      setConfirmandoId(null);
       setAviso({ mensagem: `Fabricante "${fabricante.nome}" desativado.`, desfazerId: fabricante.id });
     } catch (error) {
-      setConfirmandoId(null);
       setErroAcao(getApiErrorMessage(error, "Não foi possível desativar o fabricante."));
     }
   }
@@ -133,15 +102,9 @@ export function Fabricantes() {
     return (
       <AcoesLinha
         fabricante={fabricante}
-        confirmando={confirmandoId === fabricante.id}
         desativando={desativar.isPending && desativar.variables === fabricante.id}
         onEditar={() => abrirEdicao(fabricante)}
-        onIniciarDesativacao={() => {
-          setAviso(null);
-          setConfirmandoId(fabricante.id);
-        }}
-        onConfirmarDesativacao={() => void confirmarDesativacao(fabricante)}
-        onCancelarDesativacao={() => setConfirmandoId(null)}
+        onDesativar={() => confirmarDesativacao(fabricante)}
       />
     );
   }
@@ -200,6 +163,15 @@ export function Fabricantes() {
           onChange={(e) => setBusca(e.target.value)}
         />
       </div>
+
+      <ResultsAnnouncer
+        count={fabricantes?.length ?? 0}
+        singular="fabricante"
+        plural="fabricantes"
+        genero="m"
+        emptyMessage="Nenhum fabricante encontrado"
+        loading={isPending || isError}
+      />
 
       {isPending ? (
         <TableSkeleton />

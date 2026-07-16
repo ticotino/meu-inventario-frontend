@@ -79,6 +79,9 @@ interface ItemCaixasProps {
 function ItemCaixas({ indice, itemPedido, sugestao, control, register, errors }: ItemCaixasProps) {
   const { fields, append, remove } = useFieldArray({ control, name: `itens.${indice}.caixas` });
   const caixas = useWatch({ control, name: `itens.${indice}.caixas` });
+  // Anúncio para leitores de tela ao adicionar/remover linhas de caixas;
+  // o número da linha muda a cada ação, então mensagens repetidas são anunciadas.
+  const [anuncioLinhas, setAnuncioLinhas] = useState("");
 
   const pedidoQtd = Number(itemPedido.quantidade);
   const empacotado = somaCaixas(caixas);
@@ -141,7 +144,10 @@ function ItemCaixas({ indice, itemPedido, sugestao, control, register, errors }:
           <div className="sm:pt-6">
             <Button
               variant="ghost-danger"
-              onClick={() => remove(i)}
+              onClick={() => {
+                remove(i);
+                setAnuncioLinhas(`Linha de caixas ${i + 1} removida`);
+              }}
               disabled={fields.length === 1}
               aria-label={`Remover linha de caixas ${i + 1} de ${itemPedido.nome}`}
             >
@@ -157,9 +163,18 @@ function ItemCaixas({ indice, itemPedido, sugestao, control, register, errors }:
         </p>
       )}
 
-      <Button variant="ghost" onClick={() => append({ quantidade_por_caixa: "", quantidade_caixas: "" })}>
+      <Button
+        variant="ghost"
+        onClick={() => {
+          append({ quantidade_por_caixa: "", quantidade_caixas: "" });
+          setAnuncioLinhas(`Linha de caixas ${fields.length + 1} adicionada`);
+        }}
+      >
         + Adicionar linha de caixas
       </Button>
+      <p aria-live="polite" className="sr-only">
+        {anuncioLinhas}
+      </p>
     </fieldset>
   );
 }
@@ -341,7 +356,7 @@ export function NovoRomaneio() {
             </p>
           )}
           {pedidoId && (carregandoPedido || (pedido && pedidoMontado !== pedido.id)) && (
-            <p className="text-sm text-muted">Carregando itens do pedido...</p>
+            <p role="status" className="text-sm text-muted">Carregando itens do pedido...</p>
           )}
           {pedidoId && erroPedido && (
             <p role="alert" className={feedbackErrorClass}>

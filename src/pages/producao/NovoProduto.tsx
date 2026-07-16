@@ -4,10 +4,10 @@ import { useForm } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Button } from "../../components/ui/Button";
+import { FormErrorBanner } from "../../components/ui/FormErrorBanner";
 import { Input } from "../../components/ui/Input";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { Textarea } from "../../components/ui/Textarea";
-import { feedbackErrorClass } from "../../components/ui/formStyles";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { useCreateProduto } from "../../hooks/useProdutos";
 import { getApiErrorMessage } from "../../services/api";
@@ -94,11 +94,7 @@ export function NovoProduto() {
             {...register("estoque_minimo")}
           />
 
-          {erro && (
-            <p role="alert" className={feedbackErrorClass}>
-              {erro}
-            </p>
-          )}
+          <FormErrorBanner message={erro} />
 
           <Button type="submit" loading={isSubmitting} loadingText="Cadastrando...">
             Cadastrar produto

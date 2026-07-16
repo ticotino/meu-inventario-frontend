@@ -5,11 +5,11 @@ import { Link, useParams } from "react-router-dom";
 import { z } from "zod";
 import { Button } from "../../components/ui/Button";
 import { ErrorState } from "../../components/ui/ErrorState";
+import { FormErrorBanner } from "../../components/ui/FormErrorBanner";
 import { Input } from "../../components/ui/Input";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { SuccessBanner } from "../../components/ui/SuccessBanner";
 import { Textarea } from "../../components/ui/Textarea";
-import { feedbackErrorClass } from "../../components/ui/formStyles";
 import { useMateriaPrima, useUpdateMateriaPrima } from "../../hooks/useMateriasPrimas";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { getApiErrorMessage } from "../../services/api";
@@ -159,11 +159,7 @@ function FormEdicao({ materiaPrima }: { materiaPrima: MateriaPrima }) {
           Ativa (desmarque para tirar do estoque em uso)
         </label>
 
-        {erro && (
-          <p role="alert" className={feedbackErrorClass}>
-            {erro}
-          </p>
-        )}
+        <FormErrorBanner message={erro} />
         {sucesso && <SuccessBanner>{sucesso}</SuccessBanner>}
 
         <Button type="submit" loading={isSubmitting} loadingText="Salvando...">

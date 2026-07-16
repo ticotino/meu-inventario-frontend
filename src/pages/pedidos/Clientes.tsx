@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Button } from "../../components/ui/Button";
+import { ConfirmInline } from "../../components/ui/ConfirmInline";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { Input } from "../../components/ui/Input";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { ResponsiveTable } from "../../components/ui/ResponsiveTable";
 import type { Coluna } from "../../components/ui/ResponsiveTable";
+import { ResultsAnnouncer } from "../../components/ui/ResultsAnnouncer";
 import { SuccessBanner } from "../../components/ui/SuccessBanner";
 import { TableSkeleton } from "../../components/ui/TableSkeleton";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
@@ -20,58 +22,28 @@ type FormAberto = { modo: "criar" } | { modo: "editar"; cliente: Cliente } | nul
 
 interface AcoesLinhaProps {
   cliente: Cliente;
-  confirmando: boolean;
   desativando: boolean;
   onEditar: () => void;
-  onIniciarDesativacao: () => void;
-  onConfirmarDesativacao: () => void;
-  onCancelarDesativacao: () => void;
+  onDesativar: () => Promise<void>;
 }
 
-function AcoesLinha({
-  cliente,
-  confirmando,
-  desativando,
-  onEditar,
-  onIniciarDesativacao,
-  onConfirmarDesativacao,
-  onCancelarDesativacao,
-}: AcoesLinhaProps) {
-  if (confirmando) {
-    return (
-      <span className="inline-flex items-center gap-1 text-sm text-body">
-        Desativar?
-        <Button
-          variant="danger"
-          className="min-h-9 px-2 py-1"
-          onClick={onConfirmarDesativacao}
-          disabled={desativando}
-          loading={desativando}
-          loadingText="..."
-          aria-label={`Confirmar desativação de ${cliente.nome}`}
-        >
-          Sim
-        </Button>
-        <Button
-          variant="secondary"
-          className="min-h-9 px-2 py-1"
-          onClick={onCancelarDesativacao}
-          disabled={desativando}
-          aria-label={`Cancelar desativação de ${cliente.nome}`}
-        >
-          Não
-        </Button>
-      </span>
-    );
-  }
+function AcoesLinha({ cliente, desativando, onEditar, onDesativar }: AcoesLinhaProps) {
   return (
     <span className="inline-flex items-center gap-1">
       <Button variant="ghost" onClick={onEditar} aria-label={`Editar ${cliente.nome}`}>
         Editar
       </Button>
-      <Button variant="ghost-danger" onClick={onIniciarDesativacao} aria-label={`Desativar ${cliente.nome}`}>
-        Desativar
-      </Button>
+      <ConfirmInline
+        triggerLabel="Desativar"
+        triggerAriaLabel={`Desativar ${cliente.nome}`}
+        triggerVariant="ghost-danger"
+        question="Desativar?"
+        confirmAriaLabel={`Confirmar desativação de ${cliente.nome}`}
+        cancelAriaLabel={`Cancelar desativação de ${cliente.nome}`}
+        danger
+        loading={desativando}
+        onConfirm={onDesativar}
+      />
     </span>
   );
 }
@@ -81,7 +53,6 @@ export function Clientes() {
   const [busca, setBusca] = useState("");
   const buscaDebounced = useDebouncedValue(busca, 300);
   const [formAberto, setFormAberto] = useState<FormAberto>(null);
-  const [confirmandoId, setConfirmandoId] = useState<string | null>(null);
   const [aviso, setAviso] = useState<{ mensagem: string; desfazerId?: string } | null>(null);
   const [erroAcao, setErroAcao] = useState<string | null>(null);
 
@@ -98,7 +69,6 @@ export function Clientes() {
   function abrirEdicao(cliente: Cliente) {
     setAviso(null);
     setErroAcao(null);
-    setConfirmandoId(null);
     setFormAberto({ modo: "editar", cliente });
   }
 
@@ -109,13 +79,12 @@ export function Clientes() {
   }
 
   async function confirmarDesativacao(cliente: Cliente) {
+    setAviso(null);
     setErroAcao(null);
     try {
       await desativar.mutateAsync(cliente.id);
-      setConfirmandoId(null);
       setAviso({ mensagem: `Cliente "${cliente.nome}" desativado.`, desfazerId: cliente.id });
     } catch (error) {
-      setConfirmandoId(null);
       setErroAcao(getApiErrorMessage(error, "Não foi possível desativar o cliente."));
     }
   }
@@ -134,15 +103,9 @@ export function Clientes() {
     return (
       <AcoesLinha
         cliente={cliente}
-        confirmando={confirmandoId === cliente.id}
         desativando={desativar.isPending && desativar.variables === cliente.id}
         onEditar={() => abrirEdicao(cliente)}
-        onIniciarDesativacao={() => {
-          setAviso(null);
-          setConfirmandoId(cliente.id);
-        }}
-        onConfirmarDesativacao={() => void confirmarDesativacao(cliente)}
-        onCancelarDesativacao={() => setConfirmandoId(null)}
+        onDesativar={() => confirmarDesativacao(cliente)}
       />
     );
   }
@@ -203,6 +166,15 @@ export function Clientes() {
           onChange={(e) => setBusca(e.target.value)}
         />
       </div>
+
+      <ResultsAnnouncer
+        count={clientes?.length ?? 0}
+        singular="cliente"
+        plural="clientes"
+        genero="m"
+        emptyMessage="Nenhum cliente encontrado"
+        loading={isPending || isError}
+      />
 
       {isPending ? (
         <TableSkeleton />

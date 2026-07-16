@@ -6,6 +6,7 @@ import { Input } from "../../components/ui/Input";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { ResponsiveTable } from "../../components/ui/ResponsiveTable";
 import type { Coluna } from "../../components/ui/ResponsiveTable";
+import { ResultsAnnouncer } from "../../components/ui/ResultsAnnouncer";
 import { Select } from "../../components/ui/Select";
 import { TableSkeleton } from "../../components/ui/TableSkeleton";
 import { buttonClasses } from "../../components/ui/formStyles";
@@ -164,6 +165,15 @@ export function Pedidos() {
           />
         </div>
       </div>
+
+      <ResultsAnnouncer
+        count={pedidos?.length ?? 0}
+        singular="pedido"
+        plural="pedidos"
+        genero="m"
+        emptyMessage="Nenhum pedido encontrado"
+        loading={isPending || isError}
+      />
 
       {isPending ? (
         <TableSkeleton />
