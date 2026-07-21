@@ -48,7 +48,14 @@ export function Pedidos() {
     { header: "Cliente", cell: (pe) => pe.cliente_nome },
     {
       header: "Status",
-      cell: (pe) => <span className={`font-medium ${STATUS_PEDIDO_CLASS[pe.status]}`}>{STATUS_PEDIDO_LABEL[pe.status]}</span>,
+      cell: (pe) => (
+        <span>
+          <span className={`font-medium ${STATUS_PEDIDO_CLASS[pe.status]}`}>{STATUS_PEDIDO_LABEL[pe.status]}</span>
+          {pe.status === "pendente" && pe.parcialmente_atendido && (
+            <span className="text-muted"> · parcial</span>
+          )}
+        </span>
+      ),
     },
     { header: "Data", cell: (pe) => formatarData(pe.data_pedido) },
     {
@@ -225,7 +232,10 @@ export function Pedidos() {
                 <span className="tabular-nums">{pe.codigo}</span> · {pe.cliente_nome}
               </p>
               <p className="text-sm text-body">
-                <span className={`font-medium ${STATUS_PEDIDO_CLASS[pe.status]}`}>{STATUS_PEDIDO_LABEL[pe.status]}</span>{" "}
+                <span className={`font-medium ${STATUS_PEDIDO_CLASS[pe.status]}`}>{STATUS_PEDIDO_LABEL[pe.status]}</span>
+                {pe.status === "pendente" && pe.parcialmente_atendido && (
+                  <span className="text-muted"> · parcial</span>
+                )}{" "}
                 · {formatarData(pe.data_pedido)}
               </p>
               <p className="text-sm text-body">

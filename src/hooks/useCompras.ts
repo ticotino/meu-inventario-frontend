@@ -3,12 +3,25 @@ import {
   cancelarSolicitacaoCompra,
   criarSolicitacaoCompra,
   listCompras,
+  listReservasPedido,
   receberSolicitacaoCompra,
 } from "../services/comprasService";
 import type { CriarSolicitacaoCompraInput, ReceberSolicitacaoCompraInput } from "../types/compra";
 
 export function useCompras() {
   return useQuery({ queryKey: ["compras"], queryFn: listCompras });
+}
+
+// Reservas de matéria-prima registradas para um pedido específico — cada
+// item de `useCompras()` já traz consigo as reservas do seu próprio
+// recebimento (campo `reservas`); este hook resolve o lado inverso, usado no
+// detalhe do pedido.
+export function useReservasPedido(pedidoId: string | undefined) {
+  return useQuery({
+    queryKey: ["compras", "reservas-pedido", pedidoId],
+    queryFn: () => listReservasPedido(pedidoId!),
+    enabled: Boolean(pedidoId),
+  });
 }
 
 function useInvalidarCompras() {
@@ -18,6 +31,8 @@ function useInvalidarCompras() {
     void queryClient.invalidateQueries({ queryKey: ["materias-primas"] });
     void queryClient.invalidateQueries({ queryKey: ["movimentacoes-estoque"] });
     void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    // O recebimento pode ter criado reservas novas para qualquer pedido.
+    void queryClient.invalidateQueries({ queryKey: ["compras", "reservas-pedido"] });
   };
 }
 

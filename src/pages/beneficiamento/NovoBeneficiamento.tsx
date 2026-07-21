@@ -10,6 +10,7 @@ import { Textarea } from "../../components/ui/Textarea";
 import { feedbackErrorClass } from "../../components/ui/formStyles";
 import { useCreateBeneficiamento } from "../../hooks/useBeneficiamentos";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
+import { usePedido, usePedidos } from "../../hooks/usePedidos";
 import { usePrestadores } from "../../hooks/usePrestadores";
 import { useProducao, useProducoes } from "../../hooks/useProducoes";
 import { getApiErrorMessage } from "../../services/api";
@@ -35,11 +36,21 @@ export function NovoBeneficiamento() {
   const [searchParams] = useSearchParams();
   const [erro, setErro] = useState<string | null>(null);
   const [producaoId, setProducaoId] = useState(searchParams.get("producao") ?? "");
+  // Origem opcional a partir de um item de pedido pendente: não substitui a
+  // Produção (ainda obrigatória — é de onde a peça física saiu), só registra
+  // qual item do pedido este envio está atendendo.
+  const [origemPedidoId, setOrigemPedidoId] = useState(searchParams.get("pedido") ?? "");
+  const [pedidoItemId, setPedidoItemId] = useState(searchParams.get("pedido_item") ?? "");
 
   const { data: producoes, isPending: carregandoProducoes } = useProducoes({});
   const { data: producao, isPending: carregandoProducao } = useProducao(producaoId || undefined);
   const { data: prestadores, isPending: carregandoPrestadores } = usePrestadores();
+  const { data: pedidosPendentes } = usePedidos({ status: "pendente" });
+  const { data: pedidoOrigem, isPending: carregandoPedidoOrigem } = usePedido(origemPedidoId || undefined);
   const criar = useCreateBeneficiamento();
+
+  const itensElegiveis =
+    pedidoOrigem?.itens.filter((item) => item.destino_beneficiamento !== "nenhum" && !item.beneficiamento) ?? [];
 
   const {
     register,
@@ -83,6 +94,7 @@ export function NovoBeneficiamento() {
     try {
       const criado = await criar.mutateAsync({
         producao_id: dados.producao_id,
+        pedido_item_id: pedidoItemId || undefined,
         prestador_id: dados.prestador_id,
         tipo: dados.tipo,
         quantidade_enviada: Number(dados.quantidade_enviada),
@@ -145,6 +157,47 @@ export function NovoBeneficiamento() {
           </Select>
 
           {producaoId && carregandoProducao && <p className="text-sm text-muted">Carregando dados da produção...</p>}
+
+          <fieldset className="space-y-3 rounded-lg border border-border p-4">
+            <legend className="px-1 text-sm font-medium text-body">Origem no pedido (opcional)</legend>
+            <p className="text-xs text-muted">
+              Vincule este envio a um item de pedido que já espera acabamento, para acompanhar o status a partir do
+              pedido.
+            </p>
+            <Select
+              id="beneficiamento-origem-pedido"
+              label="Pedido"
+              value={origemPedidoId}
+              onChange={(event) => {
+                setOrigemPedidoId(event.target.value);
+                setPedidoItemId("");
+              }}
+            >
+              <option value="">Nenhum</option>
+              {pedidosPendentes?.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.codigo} · {p.cliente_nome}
+                </option>
+              ))}
+            </Select>
+            {origemPedidoId && (
+              <Select
+                id="beneficiamento-origem-item"
+                label="Item do pedido"
+                disabled={carregandoPedidoOrigem}
+                value={pedidoItemId}
+                onChange={(event) => setPedidoItemId(event.target.value)}
+              >
+                <option value="">{carregandoPedidoOrigem ? "Carregando..." : "Selecione..."}</option>
+                {itensElegiveis.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.codigo} · {item.nome} —{" "}
+                    {TIPO_BENEFICIAMENTO_LABEL[item.destino_beneficiamento as TipoBeneficiamento]}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </fieldset>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Select

@@ -4,18 +4,24 @@ import { useForm } from "react-hook-form";
 import { Link, useParams } from "react-router-dom";
 import { z } from "zod";
 import { Button } from "../../components/ui/Button";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { FormErrorBanner } from "../../components/ui/FormErrorBanner";
 import { Input } from "../../components/ui/Input";
 import { PageHeader } from "../../components/ui/PageHeader";
+import { ResponsiveTable } from "../../components/ui/ResponsiveTable";
+import type { Coluna } from "../../components/ui/ResponsiveTable";
 import { SuccessBanner } from "../../components/ui/SuccessBanner";
+import { TableSkeleton } from "../../components/ui/TableSkeleton";
 import { Textarea } from "../../components/ui/Textarea";
 import { useMateriaPrima, useUpdateMateriaPrima } from "../../hooks/useMateriasPrimas";
+import { useMovimentacoesEstoque } from "../../hooks/useMovimentacoesEstoque";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { getApiErrorMessage } from "../../services/api";
 import type { MateriaPrima } from "../../types/materiaPrima";
 import { UNIDADE_MEDIDA_LABELS } from "../../types/materiaPrima";
-import { formatarData, formatarMoeda, formatarQuantidade } from "../../utils/format";
+import type { MovimentacaoEstoque } from "../../types/movimentacaoEstoque";
+import { formatarData, formatarDataHora, formatarMoeda, formatarQuantidade } from "../../utils/format";
 
 const editarSchema = z.object({
   nome_tecido: z
@@ -170,6 +176,73 @@ function FormEdicao({ materiaPrima }: { materiaPrima: MateriaPrima }) {
   );
 }
 
+// Histórico de recebimentos de reposição desta matéria-prima — reaproveita
+// as movimentações de estoque do tipo `entrada_compra` (já existentes) em
+// vez de criar uma lista nova do zero. Mostra nota fiscal e valor de cada
+// remessa, permitindo abandonar a planilha paralela usada hoje para isso
+// (ver design.md/tasks.md, Fase 4).
+function HistoricoRecebimentos({ materiaPrimaId }: { materiaPrimaId: string }) {
+  const { data, isPending, isError, error, refetch } = useMovimentacoesEstoque({
+    itemTipo: "materia_prima",
+    itemId: materiaPrimaId,
+    tipo: "entrada_compra",
+  });
+
+  const colunas: Coluna<MovimentacaoEstoque>[] = [
+    { header: "Recebido em", cell: (movimento) => formatarDataHora(movimento.criado_em) },
+    {
+      header: "Quantidade",
+      alignRight: true,
+      cell: (movimento) => (
+        <span className="tabular-nums">
+          {formatarQuantidade(movimento.quantidade, movimento.item_unidade_medida)}
+        </span>
+      ),
+    },
+    { header: "Nota fiscal", cell: (movimento) => movimento.nota_fiscal ?? "—" },
+    { header: "Valor", cell: (movimento) => formatarMoeda(movimento.valor_unitario) },
+  ];
+
+  return (
+    <div className="rounded-lg border border-border bg-surface p-5 shadow-card">
+      <h2 className="text-sm font-medium text-ink">Histórico de recebimentos</h2>
+
+      <div className="mt-4">
+        {isPending ? (
+          <TableSkeleton linhas={2} />
+        ) : isError ? (
+          <ErrorState
+            mensagem={getApiErrorMessage(error, "Não foi possível carregar o histórico de recebimentos.")}
+            onRetry={() => void refetch()}
+          />
+        ) : data.itens.length === 0 ? (
+          <EmptyState
+            titulo="Nenhuma reposição recebida ainda"
+            descricao="Quando uma remessa deste tecido for recebida na tela de Compras, ela aparece aqui com nota fiscal e valor."
+          />
+        ) : (
+          <ResponsiveTable
+            items={data.itens}
+            columns={colunas}
+            getRowKey={(movimento) => movimento.id}
+            caption="Histórico de recebimentos desta matéria-prima"
+            mobileCard={(movimento) => (
+              <div className="space-y-1">
+                <p className="font-medium text-ink tabular-nums">{formatarDataHora(movimento.criado_em)}</p>
+                <p className="text-sm text-body tabular-nums">
+                  {formatarQuantidade(movimento.quantidade, movimento.item_unidade_medida)}
+                </p>
+                <p className="text-sm text-body">Nota fiscal: {movimento.nota_fiscal ?? "—"}</p>
+                <p className="text-sm text-body">Valor: {formatarMoeda(movimento.valor_unitario)}</p>
+              </div>
+            )}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function MateriaPrimaDetalhe() {
   const { id } = useParams<{ id: string }>();
   const { data: materiaPrima, isPending, isError, error, refetch } = useMateriaPrima(id);
@@ -245,6 +318,8 @@ export function MateriaPrimaDetalhe() {
         )}
         {materiaPrima.observacoes && <p className="mt-4 text-sm text-body">{materiaPrima.observacoes}</p>}
       </div>
+
+      <HistoricoRecebimentos materiaPrimaId={materiaPrima.id} />
 
       <FormEdicao materiaPrima={materiaPrima} />
     </div>

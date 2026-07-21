@@ -11,10 +11,12 @@ import { Select } from "../../components/ui/Select";
 import { feedbackErrorClass } from "../../components/ui/formStyles";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { usePedido, usePedidos } from "../../hooks/usePedidos";
-import { useCreateRomaneio, useSugestoesCaixa } from "../../hooks/useRomaneios";
+import { useCreateRomaneio, useRomaneiosDetalhe, useSugestoesCaixa } from "../../hooks/useRomaneios";
 import { getApiErrorMessage } from "../../services/api";
 import type { PedidoItem } from "../../types/pedido";
 import { formatarQuantidade } from "../../utils/format";
+import { somarEnviadoPorProduto } from "./quantidadeEnviada";
+import { calcularRestante, fechaComRestante, somaCaixas } from "./restanteItem";
 
 const caixaSchema = z.object({
   quantidade_por_caixa: z
@@ -50,23 +52,6 @@ function hoje(): string {
   return `${ano}-${mes}-${dia}`;
 }
 
-function somaCaixas(caixas: Array<{ quantidade_por_caixa: string; quantidade_caixas: string }> | undefined): number {
-  if (!caixas) return 0;
-  return caixas.reduce((total, caixa) => {
-    const qtd = Number(caixa.quantidade_por_caixa);
-    const n = Number(caixa.quantidade_caixas);
-    if (!Number.isFinite(qtd) || !Number.isFinite(n)) return total;
-    return total + qtd * n;
-  }, 0);
-}
-
-// Predicado único de "fecha com o pedido" — o mesmo do backend (comparação de
-// cada lado arredondado a 3 casas). Usado pelo contador ao vivo E pelo submit,
-// para o indicador nunca discordar da validação.
-function fechaComPedido(empacotado: number, pedidoQtd: number): boolean {
-  return empacotado.toFixed(3) === pedidoQtd.toFixed(3);
-}
-
 interface ItemCaixasProps {
   indice: number;
   itemPedido: PedidoItem;
@@ -83,10 +68,13 @@ function ItemCaixas({ indice, itemPedido, sugestao, control, register, errors }:
   // o número da linha muda a cada ação, então mensagens repetidas são anunciadas.
   const [anuncioLinhas, setAnuncioLinhas] = useState("");
 
-  const pedidoQtd = Number(itemPedido.quantidade);
+  // `itemPedido.quantidade` já chega como o RESTANTE deste item (quantidade
+  // pedida menos o que já saiu em romaneios anteriores) — ver montagem em
+  // `itensRestantes`, no componente principal.
+  const restanteQtd = Number(itemPedido.quantidade);
   const empacotado = somaCaixas(caixas);
-  const diferenca = pedidoQtd - empacotado;
-  const fecha = fechaComPedido(empacotado, pedidoQtd);
+  const diferenca = restanteQtd - empacotado;
+  const fecha = fechaComRestante(empacotado, restanteQtd);
 
   return (
     <fieldset className="space-y-3 rounded-lg border border-border p-4">
@@ -97,7 +85,7 @@ function ItemCaixas({ indice, itemPedido, sugestao, control, register, errors }:
       <p className="text-xs tabular-nums" aria-live="polite">
         {fecha ? (
           <span className="font-medium text-ink">
-            Empacotado {formatarQuantidade(empacotado, "unidade")} — fecha com o pedido.
+            Empacotado {formatarQuantidade(empacotado, "unidade")} — fecha com o restante deste item.
           </span>
         ) : (
           <span className="text-muted">
@@ -203,7 +191,36 @@ export function NovoRomaneio() {
   const pedido = pedidoCarregado?.status === "pendente" ? pedidoCarregado : undefined;
   const pedidoNaoPendente = pedidoCarregado !== undefined && pedidoCarregado.status !== "pendente";
 
-  const produtoIds = useMemo(() => pedido?.itens.map((item) => item.produto_id) ?? [], [pedido]);
+  // Um pedido pode já ter gerado romaneio(s) parcial(is) — buscamos o
+  // detalhe de cada um para saber quanto de cada item já saiu, e oferecer
+  // só o restante como quantidade selecionável neste novo romaneio (ver
+  // design.md decisão 5, spec pedido-envio-parcial).
+  const romaneioIds = useMemo(() => pedido?.romaneios.map((romaneio) => romaneio.id) ?? [], [pedido]);
+  const romaneiosDoPedidoQueries = useRomaneiosDetalhe(romaneioIds);
+  const romaneiosDoPedidoProntos =
+    romaneioIds.length === 0 || romaneiosDoPedidoQueries.every((query) => query.data !== undefined);
+  const enviadoPorProduto = useMemo(
+    () => somarEnviadoPorProduto(romaneiosDoPedidoQueries.flatMap((query) => (query.data ? [query.data] : []))),
+    [romaneiosDoPedidoQueries],
+  );
+
+  // Itens ainda não totalmente enviados deste pedido, com `quantidade` já
+  // substituída pelo restante (pedida − já enviada em romaneios anteriores).
+  // Um item 100% enviado some da lista — nada resta para incluir neste romaneio.
+  const itensRestantes: PedidoItem[] = useMemo(() => {
+    if (!pedido) return [];
+    return pedido.itens
+      .map((item) => {
+        const pedida = Number(item.quantidade);
+        const enviado = enviadoPorProduto.get(item.produto_id) ?? 0;
+        const restante = calcularRestante(pedida, enviado);
+        return { ...item, quantidade: String(restante) };
+      })
+      .filter((item) => Number(item.quantidade) > 0);
+  }, [pedido, enviadoPorProduto]);
+  const semItemRestante = Boolean(pedido) && romaneiosDoPedidoProntos && itensRestantes.length === 0;
+
+  const produtoIds = useMemo(() => itensRestantes.map((item) => item.produto_id), [itensRestantes]);
   const sugestoesQuery = useSugestoesCaixa(produtoIds);
   // Um único mapa (valor já normalizado) alimenta o prefill do reset e o hint
   // "Da última vez" — duas derivações separadas poderiam divergir.
@@ -231,16 +248,19 @@ export function NovoRomaneio() {
   // já digitou.
   const pedidoMontadoRef = useRef<string | null>(null);
   const [pedidoMontado, setPedidoMontado] = useState<string | null>(null);
-  const sugestoesProntas = produtoIds.length > 0 && !sugestoesQuery.isPending;
+  // Só monta o form depois que sabemos exatamente quanto resta de cada item
+  // (romaneios anteriores carregados) — montar antes arriscaria oferecer a
+  // quantidade cheia do pedido em vez do restante.
+  const sugestoesProntas = produtoIds.length === 0 || !sugestoesQuery.isPending;
 
   useEffect(() => {
-    if (!pedido || !sugestoesProntas) return;
+    if (!pedido || !romaneiosDoPedidoProntos || !sugestoesProntas) return;
     if (pedidoMontadoRef.current === pedido.id) return;
     pedidoMontadoRef.current = pedido.id;
 
     reset({
       data_saida: hoje(),
-      itens: pedido.itens.map((item) => ({
+      itens: itensRestantes.map((item) => ({
         produto_id: item.produto_id,
         caixas: [
           {
@@ -251,7 +271,7 @@ export function NovoRomaneio() {
       })),
     });
     setPedidoMontado(pedido.id);
-  }, [pedido, sugestoesProntas, sugestaoPorProduto, reset]);
+  }, [pedido, romaneiosDoPedidoProntos, sugestoesProntas, sugestaoPorProduto, itensRestantes, reset]);
 
   const semPedidosPendentes = !carregandoPedidos && (pedidosPendentes?.length ?? 0) === 0;
 
@@ -259,19 +279,20 @@ export function NovoRomaneio() {
     setErro(null);
     if (!pedido) return;
 
-    // Checagem client-side da soma exata; o backend é a fonte da verdade.
-    // Pareia por produto_id (não por índice) para o erro nunca cair no
-    // fieldset errado se a ordem dos itens do pedido mudar num refetch.
+    // Checagem client-side da soma exata contra o RESTANTE de cada item (não
+    // a quantidade total do pedido); o backend é a fonte da verdade. Pareia
+    // por produto_id (não por índice) para o erro nunca cair no fieldset
+    // errado se a ordem dos itens restantes mudar num refetch.
     let temErro = false;
-    for (const itemPedido of pedido.itens) {
+    for (const itemPedido of itensRestantes) {
       const indiceForm = dados.itens.findIndex((item) => item.produto_id === itemPedido.produto_id);
       if (indiceForm === -1) continue; // backend acusará o item faltante
       const empacotado = somaCaixas(dados.itens[indiceForm].caixas);
       const esperado = Number(itemPedido.quantidade);
-      if (!fechaComPedido(empacotado, esperado)) {
+      if (!fechaComRestante(empacotado, esperado)) {
         setError(`itens.${indiceForm}.caixas`, {
           type: "validate",
-          message: `A soma das caixas (${empacotado.toFixed(3)}) precisa ser igual à quantidade do pedido (${esperado.toFixed(3)}).`,
+          message: `A soma das caixas (${empacotado.toFixed(3)}) precisa ser igual à quantidade restante deste item (${esperado.toFixed(3)}).`,
         });
         temErro = true;
       }
@@ -300,7 +321,7 @@ export function NovoRomaneio() {
     <div>
       <PageHeader
         titulo="Gerar romaneio"
-        descricao="Monte as caixas de um pedido pendente — ao salvar, o pedido é marcado como atendido."
+        descricao="Monte as caixas dos itens já prontos de um pedido pendente — se sobrar item, o pedido continua em aberto para um próximo romaneio."
         action={
           <Link to="/romaneios" className="text-sm font-medium text-action hover:underline">
             Voltar aos romaneios
@@ -368,10 +389,15 @@ export function NovoRomaneio() {
               O pedido {pedidoCarregado?.codigo} não está mais pendente — selecione um pedido pendente.
             </p>
           )}
+          {pedido && pedidoMontado === pedido.id && semItemRestante && (
+            <p role="status" className="text-sm text-muted">
+              Todos os itens deste pedido já foram enviados em romaneios anteriores.
+            </p>
+          )}
 
           {pedido &&
             pedidoMontado === pedido.id &&
-            pedido.itens.map((itemPedido, i) => (
+            itensRestantes.map((itemPedido, i) => (
               <ItemCaixas
                 key={itemPedido.produto_id}
                 indice={i}
@@ -393,7 +419,7 @@ export function NovoRomaneio() {
             type="submit"
             loading={isSubmitting}
             loadingText="Gerando..."
-            disabled={!pedido || pedidoMontado !== pedido.id || semPedidosPendentes}
+            disabled={!pedido || pedidoMontado !== pedido.id || semPedidosPendentes || semItemRestante}
           >
             Gerar romaneio
           </Button>

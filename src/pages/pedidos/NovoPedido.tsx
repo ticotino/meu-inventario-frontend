@@ -2,7 +2,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
-import { z } from "zod";
 import { Button } from "../../components/ui/Button";
 import { Input } from "../../components/ui/Input";
 import { PageHeader } from "../../components/ui/PageHeader";
@@ -14,32 +13,12 @@ import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { useCreatePedido } from "../../hooks/usePedidos";
 import { useProdutos } from "../../hooks/useProdutos";
 import { getApiErrorMessage } from "../../services/api";
+import { TIPOS_BENEFICIAMENTO } from "../../types/beneficiamento";
+import type { TipoBeneficiamento } from "../../types/beneficiamento";
 import { formatarQuantidade } from "../../utils/format";
-
-const novoPedidoSchema = z
-  .object({
-    cliente_id: z.string().min(1, "Selecione um cliente"),
-    data_pedido: z.string().min(1, "Informe a data do pedido"),
-    data_prevista_entrega: z.string().min(1, "Informe o prazo de entrega"),
-    observacoes: z.string().trim().max(1000, "As observações são muito longas").optional(),
-    itens: z
-      .array(
-        z.object({
-          produto_id: z.string().min(1, "Selecione o produto"),
-          quantidade: z
-            .string()
-            .min(1, "Informe a quantidade")
-            .refine((valor) => Number(valor) > 0, "A quantidade deve ser maior que zero"),
-        }),
-      )
-      .min(1, "Informe ao menos um produto"),
-  })
-  .refine((dados) => dados.data_prevista_entrega >= dados.data_pedido, {
-    message: "O prazo não pode ser anterior à data do pedido",
-    path: ["data_prevista_entrega"],
-  });
-
-type NovoPedidoForm = z.infer<typeof novoPedidoSchema>;
+import { TIPO_BENEFICIAMENTO_LABEL } from "../beneficiamento/tipoBeneficiamento";
+import { novoPedidoSchema } from "./novoPedidoSchema";
+import type { NovoPedidoForm } from "./novoPedidoSchema";
 
 function hoje(): string {
   const agora = new Date();
@@ -73,7 +52,16 @@ export function NovoPedido() {
       data_pedido: hoje(),
       data_prevista_entrega: hoje(),
       observacoes: "",
-      itens: [{ produto_id: "", quantidade: "" }],
+      itens: [
+        {
+          produto_id: "",
+          quantidade: "",
+          precisa_beneficiamento: false,
+          destino_beneficiamento: "",
+          instrucao: "",
+          imagem_referencia_url: "",
+        },
+      ],
     },
   });
 
@@ -117,6 +105,15 @@ export function NovoPedido() {
         itens: dados.itens.map((item) => ({
           produto_id: item.produto_id,
           quantidade: Number(item.quantidade),
+          // O toggle "precisa de acabamento externo?" governa os três campos
+          // juntos: desmarcado, o item é salvo com destino "nenhum" e sem
+          // instrução/imagem, mesmo que o usuário tenha digitado algo antes.
+          destino_beneficiamento: item.precisa_beneficiamento
+            ? (item.destino_beneficiamento as TipoBeneficiamento)
+            : "nenhum",
+          instrucao: item.precisa_beneficiamento && item.instrucao ? item.instrucao : undefined,
+          imagem_referencia_url:
+            item.precisa_beneficiamento && item.imagem_referencia_url ? item.imagem_referencia_url : undefined,
         })),
       });
       navigate(`/pedidos/${criado.id}`);
@@ -201,57 +198,113 @@ export function NovoPedido() {
             )}
             {fields.map((field, i) => {
               const produtoSelecionado = produtoPorId.get(itensSelecionados?.[i]?.produto_id ?? "");
+              const precisaBeneficiamento = itensSelecionados?.[i]?.precisa_beneficiamento ?? false;
               return (
-                <div key={field.id} className="grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-start">
-                  <Select
-                    id={`pedido-item-produto-${i}`}
-                    label={`Produto ${i + 1}`}
-                    required
-                    disabled={semProdutos}
-                    error={errors.itens?.[i]?.produto_id?.message}
-                    {...register(`itens.${i}.produto_id`)}
-                  >
-                    <option value="" disabled>
-                      {carregandoProdutos ? "Carregando..." : "Selecione..."}
-                    </option>
-                    {produtos?.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.codigo} · {p.nome}
-                      </option>
-                    ))}
-                  </Select>
-                  <div className="sm:w-44">
-                    <Input
-                      id={`pedido-item-qtd-${i}`}
-                      label="Quantidade"
-                      type="number"
-                      step="0.001"
-                      min="0"
-                      inputMode="decimal"
+                <div key={field.id} className="space-y-3 border-b border-border pb-4 last:border-0 last:pb-0">
+                  <div className="grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-start">
+                    <Select
+                      id={`pedido-item-produto-${i}`}
+                      label={`Produto ${i + 1}`}
                       required
-                      aria-label={`Quantidade do produto ${i + 1}`}
-                      hint={
-                        produtoSelecionado
-                          ? `Disponível: ${formatarQuantidade(produtoSelecionado.quantidade_disponivel, "unidade")}`
-                          : undefined
-                      }
-                      error={errors.itens?.[i]?.quantidade?.message}
-                      {...register(`itens.${i}.quantidade`)}
-                    />
-                  </div>
-                  <div className="sm:pt-6">
-                    <Button
-                      variant="ghost-danger"
-                      onClick={() => {
-                        remove(i);
-                        setAnuncioItens(`Produto ${i + 1} removido`);
-                      }}
-                      disabled={fields.length === 1}
-                      aria-label={`Remover produto ${i + 1}`}
+                      disabled={semProdutos}
+                      error={errors.itens?.[i]?.produto_id?.message}
+                      {...register(`itens.${i}.produto_id`)}
                     >
-                      Remover
-                    </Button>
+                      <option value="" disabled>
+                        {carregandoProdutos ? "Carregando..." : "Selecione..."}
+                      </option>
+                      {produtos?.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.codigo} · {p.nome}
+                        </option>
+                      ))}
+                    </Select>
+                    <div className="sm:w-44">
+                      <Input
+                        id={`pedido-item-qtd-${i}`}
+                        label="Quantidade"
+                        type="number"
+                        step="0.001"
+                        min="0"
+                        inputMode="decimal"
+                        required
+                        aria-label={`Quantidade do produto ${i + 1}`}
+                        hint={
+                          produtoSelecionado
+                            ? `Disponível: ${formatarQuantidade(produtoSelecionado.quantidade_disponivel, "unidade")}`
+                            : undefined
+                        }
+                        error={errors.itens?.[i]?.quantidade?.message}
+                        {...register(`itens.${i}.quantidade`)}
+                      />
+                    </div>
+                    <div className="sm:pt-6">
+                      <Button
+                        variant="ghost-danger"
+                        onClick={() => {
+                          remove(i);
+                          setAnuncioItens(`Produto ${i + 1} removido`);
+                        }}
+                        disabled={fields.length === 1}
+                        aria-label={`Remover produto ${i + 1}`}
+                      >
+                        Remover
+                      </Button>
+                    </div>
                   </div>
+
+                  <label
+                    htmlFor={`pedido-item-beneficiamento-${i}`}
+                    className="flex items-center gap-2 text-sm text-body"
+                  >
+                    <input
+                      id={`pedido-item-beneficiamento-${i}`}
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-control-border text-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
+                      {...register(`itens.${i}.precisa_beneficiamento`)}
+                    />
+                    Este item precisa de acabamento externo?
+                  </label>
+
+                  {precisaBeneficiamento && (
+                    <div className="space-y-3 rounded-md border border-border p-3">
+                      <div className="sm:w-64">
+                        <Select
+                          id={`pedido-item-destino-${i}`}
+                          label="Destino do acabamento"
+                          required
+                          error={errors.itens?.[i]?.destino_beneficiamento?.message}
+                          {...register(`itens.${i}.destino_beneficiamento`)}
+                        >
+                          <option value="" disabled>
+                            Selecione...
+                          </option>
+                          {TIPOS_BENEFICIAMENTO.map((tipo) => (
+                            <option key={tipo} value={tipo}>
+                              {TIPO_BENEFICIAMENTO_LABEL[tipo]}
+                            </option>
+                          ))}
+                        </Select>
+                      </div>
+                      <Textarea
+                        id={`pedido-item-instrucao-${i}`}
+                        label="Instrução"
+                        maxLength={500}
+                        hint="Opcional. Cores, tamanho, posição, texto ou desenho combinado com o cliente."
+                        error={errors.itens?.[i]?.instrucao?.message}
+                        {...register(`itens.${i}.instrucao`)}
+                      />
+                      <Input
+                        id={`pedido-item-imagem-${i}`}
+                        label="Imagem de referência (URL)"
+                        type="url"
+                        maxLength={2048}
+                        hint="Opcional. Link para a imagem (logo do cliente, desenho do bordado)."
+                        error={errors.itens?.[i]?.imagem_referencia_url?.message}
+                        {...register(`itens.${i}.imagem_referencia_url`)}
+                      />
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -263,7 +316,14 @@ export function NovoPedido() {
             <Button
               variant="ghost"
               onClick={() => {
-                append({ produto_id: "", quantidade: "" });
+                append({
+                  produto_id: "",
+                  quantidade: "",
+                  precisa_beneficiamento: false,
+                  destino_beneficiamento: "",
+                  instrucao: "",
+                  imagem_referencia_url: "",
+                });
                 setAnuncioItens(`Produto ${fields.length + 1} adicionado`);
               }}
               disabled={semProdutos}

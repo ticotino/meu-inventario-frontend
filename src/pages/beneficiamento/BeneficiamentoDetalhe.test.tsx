@@ -19,6 +19,7 @@ const beneficiamentoEnviado: Beneficiamento = {
   id: "b1",
   codigo: "BEN-000001",
   producao_id: "prod-1",
+  pedido_item_id: null,
   prestador_id: "prest-1",
   tipo: "silk",
   status: "enviado",

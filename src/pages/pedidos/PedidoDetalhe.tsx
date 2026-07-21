@@ -2,13 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { ConfirmInline } from "../../components/ui/ConfirmInline";
+import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { Input } from "../../components/ui/Input";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { PrintButton } from "../../components/ui/PrintButton";
 import { ResponsiveTable } from "../../components/ui/ResponsiveTable";
 import type { Coluna } from "../../components/ui/ResponsiveTable";
+import { TableSkeleton } from "../../components/ui/TableSkeleton";
 import { buttonClasses, feedbackErrorClass } from "../../components/ui/formStyles";
+import { useReservasPedido } from "../../hooks/useCompras";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import {
   useAtenderPedido,
@@ -17,10 +20,88 @@ import {
   usePedido,
   useUpdatePrazoPedido,
 } from "../../hooks/usePedidos";
+import { useRomaneiosDetalhe } from "../../hooks/useRomaneios";
 import { getApiErrorMessage } from "../../services/api";
+import type { ReservaMateriaPrimaPedido } from "../../types/compra";
 import type { PedidoItem } from "../../types/pedido";
 import { formatarData, formatarDataHora, formatarQuantidade } from "../../utils/format";
+import { STATUS_BENEFICIAMENTO_CLASS, STATUS_BENEFICIAMENTO_LABEL } from "../beneficiamento/statusBeneficiamento";
+import { TIPO_BENEFICIAMENTO_LABEL } from "../beneficiamento/tipoBeneficiamento";
+import { somarEnviadoPorProduto } from "../romaneios/quantidadeEnviada";
+import { algumItemComEnvioPendente } from "./parcialmenteAtendido";
 import { STATUS_PEDIDO_CLASS, STATUS_PEDIDO_LABEL } from "./statusPedido";
+
+// Item sem destino de beneficiamento não ganha nenhuma seção extra — evitar
+// ruído visual em pedidos simples (requisito explícito do spec).
+function AcabamentoItem({ item, pedidoId }: { item: PedidoItem; pedidoId: string }) {
+  if (item.destino_beneficiamento === "nenhum") return null;
+
+  return (
+    <div className="space-y-1 text-xs">
+      <p className="font-medium text-ink">{TIPO_BENEFICIAMENTO_LABEL[item.destino_beneficiamento]}</p>
+      {item.instrucao && <p className="text-body">{item.instrucao}</p>}
+      {item.imagem_referencia_url && (
+        <a
+          href={item.imagem_referencia_url}
+          target="_blank"
+          rel="noreferrer"
+          className="font-medium text-action hover:underline"
+        >
+          Ver imagem de referência
+        </a>
+      )}
+      {item.beneficiamento ? (
+        <p>
+          <Link
+            to={`/beneficiamento/${item.beneficiamento.id}`}
+            className="font-medium tabular-nums text-action hover:underline"
+          >
+            {item.beneficiamento.codigo}
+          </Link>{" "}
+          ·{" "}
+          <span className={STATUS_BENEFICIAMENTO_CLASS[item.beneficiamento.status]}>
+            {STATUS_BENEFICIAMENTO_LABEL[item.beneficiamento.status]}
+          </span>
+        </p>
+      ) : (
+        <Link
+          to={`/beneficiamento/novo?pedido=${pedidoId}&pedido_item=${item.id}`}
+          className="font-medium text-action hover:underline"
+          data-print-hidden
+        >
+          Enviar para beneficiamento
+        </Link>
+      )}
+    </div>
+  );
+}
+
+// Quanto de um item já saiu da oficina, somando todos os romaneios do
+// pedido — não é um badge novo, só texto simples no tom neutro/muted já
+// usado para leitura (One Accent Rule: azul fica só para o que é clicável).
+function SituacaoEnvioItem({
+  item,
+  enviadoPorProduto,
+  carregando,
+}: {
+  item: PedidoItem;
+  enviadoPorProduto: Map<string, number>;
+  carregando: boolean;
+}) {
+  if (carregando) return <span className="text-xs text-muted">Carregando...</span>;
+
+  const pedida = Number(item.quantidade);
+  const enviado = enviadoPorProduto.get(item.produto_id) ?? 0;
+
+  if (enviado <= 0) return <span className="text-xs text-muted">Ainda não enviado</span>;
+  if (enviado + 0.0005 >= pedida) return <span className="text-xs text-ink">Enviado</span>;
+
+  return (
+    <span className="text-xs tabular-nums text-muted">
+      {formatarQuantidade(enviado, "unidade")} de {formatarQuantidade(item.quantidade, "unidade")}
+    </span>
+  );
+}
 
 function ResumoItem({
   rotulo,
@@ -250,10 +331,91 @@ function AcoesStatus({ pedidoId, status }: { pedidoId: string; status: string })
   );
 }
 
+// Matéria-prima já reservada para este pedido no recebimento de uma
+// remessa — registro manual (não um algoritmo de alocação), ver design.md
+// da fase 2. Só existe quando alguém marcou explicitamente essa decisão ao
+// receber a matéria-prima.
+function MateriaPrimaReservada({ pedidoId }: { pedidoId: string }) {
+  const { data: reservas, isPending, isError, error, refetch } = useReservasPedido(pedidoId);
+
+  const colunas: Coluna<ReservaMateriaPrimaPedido>[] = [
+    {
+      header: "Tecido",
+      cell: (reserva) => (
+        <span>
+          <span className="tabular-nums">{reserva.codigo}</span> · {reserva.nome_tecido}
+          {reserva.cor && <span className="text-xs text-muted"> ({reserva.cor})</span>}
+        </span>
+      ),
+    },
+    {
+      header: "Quantidade reservada",
+      alignRight: true,
+      cell: (reserva) => (
+        <span className="tabular-nums">
+          {formatarQuantidade(reserva.quantidade_reservada, reserva.unidade_medida)}
+        </span>
+      ),
+    },
+    {
+      header: "Recebido em",
+      cell: (reserva) => formatarData(reserva.data_recebimento),
+    },
+  ];
+
+  return (
+    <div className="print-section space-y-3">
+      <h2 className="text-sm font-medium text-ink">Matéria-prima reservada</h2>
+
+      {isPending ? (
+        <TableSkeleton linhas={2} />
+      ) : isError ? (
+        <ErrorState
+          mensagem={getApiErrorMessage(error, "Não foi possível carregar as reservas de matéria-prima.")}
+          onRetry={() => void refetch()}
+        />
+      ) : reservas.length === 0 ? (
+        <EmptyState
+          titulo="Nenhuma matéria-prima reservada ainda"
+          descricao="Quando uma remessa de tecido chegar, ela pode ser reservada para este pedido na tela de Compras."
+        />
+      ) : (
+        <ResponsiveTable
+          items={reservas}
+          columns={colunas}
+          getRowKey={(reserva) => reserva.id}
+          caption="Matéria-prima reservada para este pedido"
+          mobileCard={(reserva) => (
+            <div className="space-y-1">
+              <p className="font-medium text-ink">
+                <span className="tabular-nums">{reserva.codigo}</span> · {reserva.nome_tecido}
+                {reserva.cor && <span className="text-muted"> ({reserva.cor})</span>}
+              </p>
+              <p className="text-sm text-body tabular-nums">
+                {formatarQuantidade(reserva.quantidade_reservada, reserva.unidade_medida)}
+              </p>
+              <p className="text-xs text-muted">Recebido em {formatarData(reserva.data_recebimento)}</p>
+            </div>
+          )}
+        />
+      )}
+    </div>
+  );
+}
+
 export function PedidoDetalhe() {
   const { id } = useParams<{ id: string }>();
   const { data: pedido, isPending, isError, error, refetch } = usePedido(id);
   useDocumentTitle(pedido ? pedido.codigo : "Pedido");
+
+  // Um pedido pode ter gerado mais de um romaneio (envio parcial, ver
+  // design.md decisão 5) — buscamos o detalhe de cada um para somar, por
+  // produto, quanto já saiu da oficina e derivar o que ainda falta.
+  const romaneioIds = pedido?.romaneios.map((romaneio) => romaneio.id) ?? [];
+  const romaneiosQueries = useRomaneiosDetalhe(romaneioIds);
+  const romaneiosCarregando = romaneiosQueries.some((query) => query.isPending);
+  const romaneiosCarregados = romaneiosQueries.flatMap((query) => (query.data ? [query.data] : []));
+  const enviadoPorProduto = somarEnviadoPorProduto(romaneiosCarregados);
 
   if (isPending) {
     return <DetalheSkeleton />;
@@ -273,6 +435,16 @@ export function PedidoDetalhe() {
     );
   }
 
+  const temItemComBeneficiamento = pedido.itens.some((item) => item.destino_beneficiamento !== "nenhum");
+  const temRomaneios = pedido.romaneios.length > 0;
+
+  // Estado derivado — não um novo valor de status — comparando, por item, a
+  // quantidade pedida com a já enviada na soma dos romaneios existentes
+  // (design.md decisão 5, spec pedido-envio-parcial). Só é conclusivo depois
+  // que o detalhe de todos os romaneios do pedido termina de carregar.
+  const parcialmenteAtendido =
+    !romaneiosCarregando && temRomaneios && algumItemComEnvioPendente(pedido.itens, enviadoPorProduto);
+
   const colunas: Coluna<PedidoItem>[] = [
     { header: "Código", cell: (item) => <span className="tabular-nums">{item.codigo}</span> },
     { header: "Produto", cell: (item) => <span className="font-medium text-ink">{item.nome}</span> },
@@ -281,6 +453,22 @@ export function PedidoDetalhe() {
       alignRight: true,
       cell: (item) => <span className="tabular-nums">{formatarQuantidade(item.quantidade, "unidade")}</span>,
     },
+    ...(temRomaneios
+      ? [
+          {
+            header: "Enviado",
+            cell: (item: PedidoItem) => <SituacaoEnvioItem item={item} enviadoPorProduto={enviadoPorProduto} carregando={romaneiosCarregando} />,
+          },
+        ]
+      : []),
+    ...(temItemComBeneficiamento
+      ? [
+          {
+            header: "Acabamento",
+            cell: (item: PedidoItem) => <AcabamentoItem item={item} pedidoId={pedido.id} />,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -310,6 +498,9 @@ export function PedidoDetalhe() {
                 className={STATUS_PEDIDO_CLASS[pedido.status]}
               >
                 {STATUS_PEDIDO_LABEL[pedido.status]}
+                {parcialmenteAtendido && (
+                  <span className="ml-1 text-sm font-normal text-muted">· parcial</span>
+                )}
               </span>
             }
             destaque
@@ -334,16 +525,23 @@ export function PedidoDetalhe() {
           {pedido.cancelado_em && (
             <ResumoItem rotulo="Cancelado em" valor={formatarDataHora(pedido.cancelado_em)} />
           )}
-          {pedido.romaneio_id && (
+          {temRomaneios && (
             <ResumoItem
-              rotulo="Romaneio"
+              rotulo={pedido.romaneios.length === 1 ? "Romaneio" : "Romaneios"}
               valor={
-                <Link
-                  to={`/romaneios/${pedido.romaneio_id}`}
-                  className="font-medium tabular-nums text-action hover:underline"
-                >
-                  {pedido.romaneio_codigo}
-                </Link>
+                <ul className="space-y-1">
+                  {pedido.romaneios.map((romaneio) => (
+                    <li key={romaneio.id}>
+                      <Link
+                        to={`/romaneios/${romaneio.id}`}
+                        className="font-medium tabular-nums text-action hover:underline"
+                      >
+                        {romaneio.codigo}
+                      </Link>{" "}
+                      <span className="text-xs text-muted">{formatarData(romaneio.data_saida)}</span>
+                    </li>
+                  ))}
+                </ul>
               }
             />
           )}
@@ -363,7 +561,7 @@ export function PedidoDetalhe() {
         <ResponsiveTable
           items={pedido.itens}
           columns={colunas}
-          getRowKey={(item) => item.produto_id}
+          getRowKey={(item) => item.id}
           caption="Itens do pedido"
           mobileCard={(item) => (
             <div className="space-y-1">
@@ -373,10 +571,26 @@ export function PedidoDetalhe() {
               <p className="text-sm text-body tabular-nums">
                 {formatarQuantidade(item.quantidade, "unidade")}
               </p>
+              {temRomaneios && (
+                <p className="pt-0.5">
+                  <SituacaoEnvioItem
+                    item={item}
+                    enviadoPorProduto={enviadoPorProduto}
+                    carregando={romaneiosCarregando}
+                  />
+                </p>
+              )}
+              {item.destino_beneficiamento !== "nenhum" && (
+                <div className="pt-1">
+                  <AcabamentoItem item={item} pedidoId={pedido.id} />
+                </div>
+              )}
             </div>
           )}
         />
       </div>
+
+      <MateriaPrimaReservada pedidoId={pedido.id} />
     </div>
   );
 }

@@ -17,18 +17,21 @@ import {
   useReceberSolicitacaoCompra,
 } from "../hooks/useCompras";
 import { useDocumentTitle } from "../hooks/useDocumentTitle";
+import { usePedidos } from "../hooks/usePedidos";
 import { getApiErrorMessage } from "../services/api";
 import type { NecessidadeCompra } from "../types/compra";
+import { Select } from "../components/ui/Select";
 import { formatarDataHora, formatarQuantidade } from "../utils/format";
+import { numeroPositivo, validarReservas } from "./reservaMateriaPrimaValidacao";
+import type { LinhaReserva } from "./reservaMateriaPrimaValidacao";
 
 interface CompraItemProps {
   item: NecessidadeCompra;
   onFeedback: (mensagem: string) => void;
 }
 
-function numeroPositivo(valor: string): number | null {
-  const numero = Number(valor.replace(",", "."));
-  return Number.isFinite(numero) && numero > 0 ? numero : null;
+function novaLinhaReserva(): LinhaReserva {
+  return { pedido_id: "", quantidade: "" };
 }
 
 function CompraItem({ item, onFeedback }: CompraItemProps) {
@@ -37,12 +40,37 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
   const [observacoes, setObservacoes] = useState("");
   const [erroQuantidade, setErroQuantidade] = useState<string | null>(null);
   const [erroApi, setErroApi] = useState<string | null>(null);
+  // Nota fiscal e valor desta remessa — opcionais, mesmo padrão já usado no
+  // recebimento de beneficiamento. Preenchidos aqui, no recebimento, porque
+  // o valor pode variar entre remessas do mesmo tecido (não é o mesmo campo
+  // do cadastro inicial da matéria-prima).
+  const [notaFiscal, setNotaFiscal] = useState("");
+  const [valorUnitario, setValorUnitario] = useState("");
+  // Reserva de parte (ou toda) a quantidade recebida para pedido(s)
+  // pendente(s) — opcional e colapsada por padrão: a maioria dos
+  // recebimentos não reserva nada, e isso não deve virar cerimônia extra.
+  const [reservarAtivo, setReservarAtivo] = useState(false);
+  const [linhasReserva, setLinhasReserva] = useState<LinhaReserva[]>([novaLinhaReserva()]);
+  const [erroReserva, setErroReserva] = useState<string | null>(null);
   const quantidadeRef = useRef<HTMLInputElement>(null);
   const criar = useCriarSolicitacaoCompra();
   const receber = useReceberSolicitacaoCompra();
   const cancelar = useCancelarSolicitacaoCompra();
+  const { data: pedidosPendentes } = usePedidos({ status: "pendente" });
   const temSolicitacao = item.solicitacao_id !== null;
   const processando = criar.isPending || receber.isPending || cancelar.isPending;
+
+  function atualizarLinhaReserva(index: number, campo: keyof LinhaReserva, valor: string) {
+    setLinhasReserva((atual) => atual.map((linha, i) => (i === index ? { ...linha, [campo]: valor } : linha)));
+  }
+
+  function adicionarLinhaReserva() {
+    setLinhasReserva((atual) => [...atual, novaLinhaReserva()]);
+  }
+
+  function removerLinhaReserva(index: number) {
+    setLinhasReserva((atual) => atual.filter((_, i) => i !== index));
+  }
 
   async function solicitar(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,9 +104,35 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
     }
     setErroQuantidade(null);
     setErroApi(null);
+    setErroReserva(null);
+
+    let reservas: Array<{ pedido_id: string; quantidade_reservada: number }> | undefined;
+    if (reservarAtivo) {
+      const resultado = validarReservas(linhasReserva, valor, item.unidade_medida);
+      if (!resultado.ok) {
+        setErroReserva(resultado.erro);
+        return;
+      }
+      reservas = resultado.reservas;
+    }
+
     try {
-      await receber.mutateAsync({ id: item.solicitacao_id, quantidade_recebida: valor });
-      onFeedback(`Recebimento de ${item.codigo} registrado no estoque.`);
+      await receber.mutateAsync({
+        id: item.solicitacao_id,
+        quantidade_recebida: valor,
+        reservas,
+        nota_fiscal: notaFiscal.trim() || undefined,
+        valor_unitario: valorUnitario ? numeroPositivo(valorUnitario) ?? undefined : undefined,
+      });
+      onFeedback(
+        reservas
+          ? `Recebimento de ${item.codigo} registrado, com reserva para ${reservas.length} pedido(s).`
+          : `Recebimento de ${item.codigo} registrado no estoque.`,
+      );
+      setReservarAtivo(false);
+      setLinhasReserva([novaLinhaReserva()]);
+      setNotaFiscal("");
+      setValorUnitario("");
     } catch (error) {
       setErroApi(getApiErrorMessage(error, "Não foi possível registrar o recebimento."));
     }
@@ -120,6 +174,19 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
           <p><span className="font-medium">Solicitado:</span> <span className="tabular-nums">{formatarQuantidade(item.quantidade_solicitada ?? "0", item.unidade_medida)}</span></p>
           {item.solicitacao_criado_em && <p className="mt-1 text-muted">Criada em {formatarDataHora(item.solicitacao_criado_em)}{item.solicitacao_criado_por_nome ? ` por ${item.solicitacao_criado_por_nome}` : ""}</p>}
           {item.solicitacao_observacoes && <p className="mt-1 whitespace-pre-wrap text-muted">{item.solicitacao_observacoes}</p>}
+          {item.reservas.length > 0 && (
+            <div className="mt-2 space-y-1 border-t border-border pt-2">
+              <p className="font-medium text-ink">Reservado para:</p>
+              <ul className="space-y-0.5">
+                {item.reservas.map((reserva) => (
+                  <li key={reserva.id}>
+                    <span className="tabular-nums">{reserva.pedido_codigo}</span> ·{" "}
+                    {formatarQuantidade(reserva.quantidade_reservada, item.unidade_medida)}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 
@@ -155,6 +222,102 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
             )}
           </div>
         </div>
+        {temSolicitacao && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              id={`nota-fiscal-compra-${item.materia_prima_id}`}
+              label="Nota fiscal"
+              type="text"
+              maxLength={60}
+              hint="Opcional."
+              value={notaFiscal}
+              onChange={(event) => setNotaFiscal(event.target.value)}
+            />
+            <Input
+              id={`valor-compra-${item.materia_prima_id}`}
+              label="Valor unitário (R$)"
+              type="number"
+              min="0"
+              step="0.01"
+              inputMode="decimal"
+              hint="Valor por unidade de medida desta remessa (opcional)."
+              value={valorUnitario}
+              onChange={(event) => setValorUnitario(event.target.value)}
+            />
+          </div>
+        )}
+        {temSolicitacao && (
+          <div className="space-y-3 rounded-md border border-border p-3">
+            <label
+              htmlFor={`reservar-toggle-${item.materia_prima_id}`}
+              className="flex items-center gap-2 text-sm text-body"
+            >
+              <input
+                id={`reservar-toggle-${item.materia_prima_id}`}
+                type="checkbox"
+                className="h-4 w-4 rounded border-control-border text-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
+                checked={reservarAtivo}
+                onChange={(event) => setReservarAtivo(event.target.checked)}
+              />
+              Reservar esta remessa para pedido(s) pendente(s)?
+            </label>
+
+            {reservarAtivo && (
+              <div className="space-y-3">
+                <p className="text-xs text-muted">
+                  O que não for reservado aqui continua disponível como estoque livre.
+                </p>
+                {linhasReserva.map((linha, i) => (
+                  <div key={i} className="grid gap-3 sm:grid-cols-[1fr_10rem_auto] sm:items-end">
+                    <Select
+                      id={`reserva-pedido-${item.materia_prima_id}-${i}`}
+                      label={`Pedido ${i + 1}`}
+                      value={linha.pedido_id}
+                      onChange={(event) => atualizarLinhaReserva(i, "pedido_id", event.target.value)}
+                    >
+                      <option value="" disabled>
+                        {pedidosPendentes === undefined ? "Carregando..." : "Selecione..."}
+                      </option>
+                      {pedidosPendentes?.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.codigo} · {p.cliente_nome}
+                        </option>
+                      ))}
+                    </Select>
+                    <Input
+                      id={`reserva-quantidade-${item.materia_prima_id}-${i}`}
+                      label="Quantidade reservada"
+                      type="number"
+                      min="0.001"
+                      step="0.001"
+                      value={linha.quantidade}
+                      onChange={(event) => atualizarLinhaReserva(i, "quantidade", event.target.value)}
+                    />
+                    <Button
+                      variant="ghost-danger"
+                      onClick={() => removerLinhaReserva(i)}
+                      disabled={linhasReserva.length === 1}
+                      aria-label={`Remover reserva ${i + 1}`}
+                    >
+                      Remover
+                    </Button>
+                  </div>
+                ))}
+                <Button variant="ghost" onClick={adicionarLinhaReserva}>
+                  + Adicionar pedido
+                </Button>
+                {pedidosPendentes && pedidosPendentes.length === 0 && (
+                  <p className="text-xs text-muted">Nenhum pedido pendente no momento.</p>
+                )}
+                {erroReserva && (
+                  <p role="alert" className="text-xs text-danger">
+                    {erroReserva}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         {!temSolicitacao && (
           <Textarea
             id={`observacoes-compra-${item.materia_prima_id}`}

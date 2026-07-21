@@ -66,7 +66,9 @@ export function Beneficiamentos() {
     {
       header: "Qtd. enviada",
       alignRight: true,
-      cell: (b) => <span className="tabular-nums">{formatarQuantidade(b.quantidade_enviada, "unidade")}</span>,
+      cell: (b) => (
+        <span className="tabular-nums">{formatarQuantidade(b.quantidade_enviada, "unidade")}</span>
+      ),
     },
     {
       header: "Qtd. recebida",
@@ -92,6 +94,11 @@ export function Beneficiamentos() {
       <PageHeader
         titulo="Beneficiamento"
         descricao="Peças enviadas para costura externa, silk e bordado: quando saíram, quanto voltou e quanto custou."
+        action={
+          <Link to="/beneficiamento/novo" className={buttonClasses("primary")}>
+            Enviar para beneficiamento
+          </Link>
+        }
       />
 
       <BeneficiamentoTabs />
@@ -182,13 +189,18 @@ export function Beneficiamentos() {
               </p>
               <p className="text-sm text-body">
                 {TIPO_BENEFICIAMENTO_LABEL[b.tipo]} ·{" "}
-                <span className={STATUS_BENEFICIAMENTO_CLASS[b.status]}>{STATUS_BENEFICIAMENTO_LABEL[b.status]}</span>
+                <span className={STATUS_BENEFICIAMENTO_CLASS[b.status]}>
+                  {STATUS_BENEFICIAMENTO_LABEL[b.status]}
+                </span>
               </p>
               <p className="text-sm text-body tabular-nums">
                 Enviado: {formatarQuantidade(b.quantidade_enviada, "unidade")} em {formatarData(b.data_envio)}
               </p>
               <div className="pt-1">
-                <Link to={`/beneficiamento/${b.id}`} className="text-sm font-medium text-action hover:underline">
+                <Link
+                  to={`/beneficiamento/${b.id}`}
+                  className="text-sm font-medium text-action hover:underline"
+                >
                   Detalhes
                 </Link>
               </div>

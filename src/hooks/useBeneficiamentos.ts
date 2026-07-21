@@ -26,10 +26,15 @@ export function useBeneficiamento(id: string | undefined) {
 
 // Enviar/receber/cancelar um beneficiamento não muda quantas unidades prontas
 // a oficina possui (a peça já entrou como entrada_producao) — é só uma camada
-// de status de processamento, então só invalidamos o próprio recurso.
+// de status de processamento. Mas um beneficiamento pode estar vinculado a um
+// pedido_item (ver types/beneficiamento.ts), então o detalhe do pedido também
+// precisa refletir a mudança de status.
 function useInvalidateBeneficiamentos() {
   const queryClient = useQueryClient();
-  return () => void queryClient.invalidateQueries({ queryKey: ["beneficiamentos"] });
+  return () => {
+    void queryClient.invalidateQueries({ queryKey: ["beneficiamentos"] });
+    void queryClient.invalidateQueries({ queryKey: ["pedidos"] });
+  };
 }
 
 export function useCreateBeneficiamento() {

@@ -9,6 +9,10 @@ export interface BeneficiamentoRegistro {
   id: string;
   codigo: string;
   producao_id: string;
+  // Preenchido quando este envio atende a um item de pedido específico
+  // (nullable, aditivo — o fluxo a partir de uma produção própria continua
+  // funcionando sem ele).
+  pedido_item_id: string | null;
   prestador_id: string;
   tipo: TipoBeneficiamento;
   status: StatusBeneficiamento;
@@ -37,6 +41,7 @@ export interface Beneficiamento extends BeneficiamentoRegistro {
 
 export interface BeneficiamentoCreateInput {
   producao_id: string;
+  pedido_item_id?: string;
   prestador_id: string;
   tipo: TipoBeneficiamento;
   quantidade_enviada: number;

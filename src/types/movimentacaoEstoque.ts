@@ -40,6 +40,13 @@ export interface MovimentacaoEstoque {
   referencia_tipo: string | null;
   referencia_id: string | null;
   referencia_codigo: string | null;
+  // Preenchidos apenas em movimentações do tipo `entrada_compra` — nota
+  // fiscal e valor da remessa recebida, no mesmo padrão de
+  // `ReceberSolicitacaoCompraInput` (ver design.md da fase 4). Nulos para
+  // os demais tipos de movimentação.
+  nota_fiscal: string | null;
+  // decimal do Postgres chega como string
+  valor_unitario: string | null;
   usuario_id: string;
   usuario_nome: string;
   criado_em: string;
