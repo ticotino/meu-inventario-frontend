@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
+import type { Control, FieldErrors, UseFormRegister, UseFormSetValue } from "react-hook-form";
 import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { Button } from "../../components/ui/Button";
@@ -14,7 +15,10 @@ import { useMateriasPrimas } from "../../hooks/useMateriasPrimas";
 import { useCreateProducao } from "../../hooks/useProducoes";
 import { useProdutos } from "../../hooks/useProdutos";
 import { getApiErrorMessage } from "../../services/api";
+import type { MateriaPrima } from "../../types/materiaPrima";
+import type { Produto } from "../../types/produto";
 import { formatarQuantidade } from "../../utils/format";
+import { calcularConsumoSugerido } from "./consumoSugerido";
 
 const novaProducaoSchema = z.object({
   produto_id: z.string().min(1, "Selecione um produto"),
@@ -47,6 +51,128 @@ function hoje(): string {
   return `${ano}-${mes}-${dia}`;
 }
 
+function paraNumeroOuNull(valor: string | null): number | null {
+  return valor === null ? null : Number(valor);
+}
+
+interface ItemProducaoProps {
+  indice: number;
+  control: Control<NovaProducaoForm>;
+  register: UseFormRegister<NovaProducaoForm>;
+  setValue: UseFormSetValue<NovaProducaoForm>;
+  errors: FieldErrors<NovaProducaoForm>;
+  produtoSelecionado: Produto | undefined;
+  quantidadeProduzida: string;
+  materiasPrimas: MateriaPrima[] | undefined;
+  mpPorId: Map<string, MateriaPrima>;
+  carregandoMps: boolean;
+  semMps: boolean;
+  totalItens: number;
+  onRemover: () => void;
+}
+
+function ItemProducao({
+  indice,
+  control,
+  register,
+  setValue,
+  errors,
+  produtoSelecionado,
+  quantidadeProduzida,
+  materiasPrimas,
+  mpPorId,
+  carregandoMps,
+  semMps,
+  totalItens,
+  onRemover,
+}: ItemProducaoProps) {
+  const materiaPrimaId = useWatch({ control, name: `itens.${indice}.materia_prima_id` });
+  const mpSelecionada = mpPorId.get(materiaPrimaId ?? "");
+  // Sugestão só pré-preenche; uma vez que o usuário digita por cima, não
+  // recalculamos mais essa linha (ver design.md, decisão 4) — distinguimos
+  // "usuário editou" de "setValue programático" com uma flag própria em vez
+  // de depender de dirtyFields, para não reagir ao nosso próprio setValue.
+  const [editadoManualmente, setEditadoManualmente] = useState(false);
+  const registroQuantidade = register(`itens.${indice}.quantidade_consumida`);
+
+  const sugestaoBruta =
+    produtoSelecionado && mpSelecionada
+      ? calcularConsumoSugerido(
+          {
+            largura_cm: paraNumeroOuNull(produtoSelecionado.largura_cm),
+            comprimento_cm: paraNumeroOuNull(produtoSelecionado.comprimento_cm),
+          },
+          { largura_rolo_cm: paraNumeroOuNull(mpSelecionada.largura_rolo_cm) },
+          Number(quantidadeProduzida),
+        )
+      : null;
+  const sugestao = sugestaoBruta !== null ? Math.round(sugestaoBruta * 1000) / 1000 : null;
+
+  useEffect(() => {
+    if (editadoManualmente || sugestao === null) return;
+    setValue(`itens.${indice}.quantidade_consumida`, String(sugestao));
+  }, [editadoManualmente, sugestao, indice, setValue]);
+
+  return (
+    <div className="grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-start">
+      <Select
+        id={`producao-item-mp-${indice}`}
+        label={`Matéria-prima ${indice + 1}`}
+        required
+        disabled={semMps}
+        error={errors.itens?.[indice]?.materia_prima_id?.message}
+        {...register(`itens.${indice}.materia_prima_id`)}
+      >
+        <option value="" disabled>
+          {carregandoMps ? "Carregando..." : "Selecione..."}
+        </option>
+        {materiasPrimas?.map((mp) => (
+          <option key={mp.id} value={mp.id}>
+            {mp.codigo} · {mp.nome_tecido}
+            {mp.cor ? ` (${mp.cor})` : ""}
+          </option>
+        ))}
+      </Select>
+      <div className="sm:w-44">
+        <Input
+          id={`producao-item-qtd-${indice}`}
+          label="Quantidade"
+          type="number"
+          step="0.001"
+          min="0"
+          inputMode="decimal"
+          required
+          hint={
+            mpSelecionada
+              ? `${
+                  sugestao !== null && !editadoManualmente
+                    ? `Sugerido: ${formatarQuantidade(sugestao, "metro")} · `
+                    : ""
+                }Disponível: ${formatarQuantidade(mpSelecionada.quantidade_disponivel, mpSelecionada.unidade_medida)}`
+              : undefined
+          }
+          error={errors.itens?.[indice]?.quantidade_consumida?.message}
+          {...registroQuantidade}
+          onChange={(evento) => {
+            setEditadoManualmente(true);
+            void registroQuantidade.onChange(evento);
+          }}
+        />
+      </div>
+      <div className="sm:pt-6">
+        <Button
+          variant="ghost-danger"
+          onClick={onRemover}
+          disabled={totalItens === 1}
+          aria-label={`Remover matéria-prima ${indice + 1}`}
+        >
+          Remover
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 export function NovaProducao() {
   useDocumentTitle("Registrar produção");
   const navigate = useNavigate();
@@ -60,6 +186,7 @@ export function NovaProducao() {
     handleSubmit,
     control,
     setError,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<NovaProducaoForm>({
     resolver: zodResolver(novaProducaoSchema),
@@ -73,11 +200,14 @@ export function NovaProducao() {
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: "itens" });
-  const itensSelecionados = useWatch({ control, name: "itens" });
+  const produtoIdSelecionado = useWatch({ control, name: "produto_id" });
+  const quantidadeProduzida = useWatch({ control, name: "quantidade_produzida" });
 
   const semProdutos = !carregandoProdutos && (produtos?.length ?? 0) === 0;
   const semMps = !carregandoMps && (materiasPrimas?.length ?? 0) === 0;
   const mpPorId = new Map(materiasPrimas?.map((mp) => [mp.id, mp]) ?? []);
+  const produtoPorId = new Map(produtos?.map((p) => [p.id, p]) ?? []);
+  const produtoSelecionado = produtoPorId.get(produtoIdSelecionado ?? "");
 
   async function onSubmit(dados: NovaProducaoForm) {
     setErro(null);
@@ -201,59 +331,24 @@ export function NovaProducao() {
                 antes de produzir.
               </p>
             )}
-            {fields.map((field, i) => {
-              const mpSelecionada = mpPorId.get(itensSelecionados?.[i]?.materia_prima_id ?? "");
-              return (
-                <div key={field.id} className="grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-start">
-                  <Select
-                    id={`producao-item-mp-${i}`}
-                    label={`Matéria-prima ${i + 1}`}
-                    required
-                    disabled={semMps}
-                    error={errors.itens?.[i]?.materia_prima_id?.message}
-                    {...register(`itens.${i}.materia_prima_id`)}
-                  >
-                    <option value="" disabled>
-                      {carregandoMps ? "Carregando..." : "Selecione..."}
-                    </option>
-                    {materiasPrimas?.map((mp) => (
-                      <option key={mp.id} value={mp.id}>
-                        {mp.codigo} · {mp.nome_tecido}
-                        {mp.cor ? ` (${mp.cor})` : ""}
-                      </option>
-                    ))}
-                  </Select>
-                  <div className="sm:w-44">
-                    <Input
-                      id={`producao-item-qtd-${i}`}
-                      label="Quantidade"
-                      type="number"
-                      step="0.001"
-                      min="0"
-                      inputMode="decimal"
-                      required
-                      hint={
-                        mpSelecionada
-                          ? `Disponível: ${formatarQuantidade(mpSelecionada.quantidade_disponivel, mpSelecionada.unidade_medida)}`
-                          : undefined
-                      }
-                      error={errors.itens?.[i]?.quantidade_consumida?.message}
-                      {...register(`itens.${i}.quantidade_consumida`)}
-                    />
-                  </div>
-                  <div className="sm:pt-6">
-                    <Button
-                      variant="ghost-danger"
-                      onClick={() => remove(i)}
-                      disabled={fields.length === 1}
-                      aria-label={`Remover matéria-prima ${i + 1}`}
-                    >
-                      Remover
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
+            {fields.map((field, i) => (
+              <ItemProducao
+                key={field.id}
+                indice={i}
+                control={control}
+                register={register}
+                setValue={setValue}
+                errors={errors}
+                produtoSelecionado={produtoSelecionado}
+                quantidadeProduzida={quantidadeProduzida}
+                materiasPrimas={materiasPrimas}
+                mpPorId={mpPorId}
+                carregandoMps={carregandoMps}
+                semMps={semMps}
+                totalItens={fields.length}
+                onRemover={() => remove(i)}
+              />
+            ))}
             {errors.itens?.root?.message && (
               <p role="alert" className="text-xs text-danger">
                 {errors.itens.root.message}

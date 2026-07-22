@@ -6,14 +6,14 @@ import { ResponsiveTable } from "../../components/ui/ResponsiveTable";
 import type { Coluna } from "../../components/ui/ResponsiveTable";
 import { TableSkeleton } from "../../components/ui/TableSkeleton";
 import { buttonClasses } from "../../components/ui/formStyles";
-import { useBeneficiamentos } from "../../hooks/useBeneficiamentos";
+import { useServicosExternos } from "../../hooks/useServicosExternos";
 import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { useProducao } from "../../hooks/useProducoes";
 import { getApiErrorMessage } from "../../services/api";
-import type { Beneficiamento } from "../../types/beneficiamento";
+import type { ServicoExterno } from "../../types/servicoExterno";
 import type { ProducaoItem } from "../../types/producao";
-import { STATUS_BENEFICIAMENTO_CLASS, STATUS_BENEFICIAMENTO_LABEL } from "../beneficiamento/statusBeneficiamento";
-import { TIPO_BENEFICIAMENTO_LABEL } from "../beneficiamento/tipoBeneficiamento";
+import { STATUS_SERVICO_EXTERNO_CLASS, STATUS_SERVICO_EXTERNO_LABEL } from "../servicos-externos/statusServicoExterno";
+import { TIPO_SERVICO_EXTERNO_LABEL } from "../servicos-externos/tipoServicoExterno";
 import { formatarData, formatarQuantidade } from "../../utils/format";
 
 function ResumoItem({ rotulo, valor, destaque = false }: { rotulo: string; valor: React.ReactNode; destaque?: boolean }) {
@@ -48,24 +48,24 @@ function DetalheSkeleton() {
   );
 }
 
-function BeneficiamentoSecao({ producaoId }: { producaoId: string }) {
-  const { data: beneficiamentos, isPending, isError, error, refetch } = useBeneficiamentos({ producaoId });
+function ServicoExternoSecao({ producaoId }: { producaoId: string }) {
+  const { data: servicosExternos, isPending, isError, error, refetch } = useServicosExternos({ producaoId });
 
-  const colunasBeneficiamento: Coluna<Beneficiamento>[] = [
+  const colunasServicoExterno: Coluna<ServicoExterno>[] = [
     {
       header: "Código",
-      cell: (b) => (
-        <Link to={`/beneficiamento/${b.id}`} className="font-medium tabular-nums text-action hover:underline">
-          {b.codigo}
+      cell: (s) => (
+        <Link to={`/servicos-externos/${s.id}`} className="font-medium tabular-nums text-action hover:underline">
+          {s.codigo}
         </Link>
       ),
     },
-    { header: "Prestador", cell: (b) => b.prestador_nome },
-    { header: "Tipo", cell: (b) => TIPO_BENEFICIAMENTO_LABEL[b.tipo] },
+    { header: "Prestador", cell: (s) => s.prestador_nome },
+    { header: "Tipo", cell: (s) => TIPO_SERVICO_EXTERNO_LABEL[s.tipo] },
     {
       header: "Status",
-      cell: (b) => (
-        <span className={STATUS_BENEFICIAMENTO_CLASS[b.status]}>{STATUS_BENEFICIAMENTO_LABEL[b.status]}</span>
+      cell: (s) => (
+        <span className={STATUS_SERVICO_EXTERNO_CLASS[s.status]}>{STATUS_SERVICO_EXTERNO_LABEL[s.status]}</span>
       ),
     },
     {
@@ -88,9 +88,9 @@ function BeneficiamentoSecao({ producaoId }: { producaoId: string }) {
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-medium text-ink">Beneficiamento</h2>
-        <Link to={`/beneficiamento/novo?producao=${producaoId}`} className={buttonClasses("secondary")}>
-          Enviar para beneficiamento
+        <h2 className="text-sm font-medium text-ink">Serviços externos</h2>
+        <Link to={`/servicos-externos/novo?producao=${producaoId}`} className={buttonClasses("secondary")}>
+          Enviar para serviço externo
         </Link>
       </div>
 
@@ -98,36 +98,36 @@ function BeneficiamentoSecao({ producaoId }: { producaoId: string }) {
         <TableSkeleton linhas={2} />
       ) : isError ? (
         <ErrorState
-          mensagem={getApiErrorMessage(error, "Não foi possível carregar o beneficiamento desta produção.")}
+          mensagem={getApiErrorMessage(error, "Não foi possível carregar o serviço externo desta produção.")}
           onRetry={() => void refetch()}
         />
-      ) : beneficiamentos.length === 0 ? (
+      ) : servicosExternos.length === 0 ? (
         <EmptyState
-          titulo="Nenhum beneficiamento enviado ainda"
+          titulo="Nenhum serviço externo enviado ainda"
           descricao="Envie peças desta produção para costura externa, silk ou bordado."
           action={
-            <Link to={`/beneficiamento/novo?producao=${producaoId}`} className={buttonClasses("primary")}>
-              Enviar para beneficiamento
+            <Link to={`/servicos-externos/novo?producao=${producaoId}`} className={buttonClasses("primary")}>
+              Enviar para serviço externo
             </Link>
           }
         />
       ) : (
         <ResponsiveTable
-          items={beneficiamentos}
-          columns={colunasBeneficiamento}
-          getRowKey={(b) => b.id}
-          caption="Beneficiamentos vinculados a esta produção"
-          mobileCard={(b) => (
+          items={servicosExternos}
+          columns={colunasServicoExterno}
+          getRowKey={(s) => s.id}
+          caption="Serviços externos vinculados a esta produção"
+          mobileCard={(s) => (
             <div className="space-y-1">
               <p className="font-medium text-ink">
-                <span className="tabular-nums">{b.codigo}</span> · {b.prestador_nome}
+                <span className="tabular-nums">{s.codigo}</span> · {s.prestador_nome}
               </p>
               <p className="text-sm text-body">
-                {TIPO_BENEFICIAMENTO_LABEL[b.tipo]} ·{" "}
-                <span className={STATUS_BENEFICIAMENTO_CLASS[b.status]}>{STATUS_BENEFICIAMENTO_LABEL[b.status]}</span>
+                {TIPO_SERVICO_EXTERNO_LABEL[s.tipo]} ·{" "}
+                <span className={STATUS_SERVICO_EXTERNO_CLASS[s.status]}>{STATUS_SERVICO_EXTERNO_LABEL[s.status]}</span>
               </p>
               <div className="pt-1">
-                <Link to={`/beneficiamento/${b.id}`} className="text-sm font-medium text-action hover:underline">
+                <Link to={`/servicos-externos/${s.id}`} className="text-sm font-medium text-action hover:underline">
                   Detalhes
                 </Link>
               </div>
@@ -240,7 +240,7 @@ export function ProducaoDetalhe() {
         />
       </div>
 
-      <BeneficiamentoSecao producaoId={producao.id} />
+      <ServicoExternoSecao producaoId={producao.id} />
     </div>
   );
 }

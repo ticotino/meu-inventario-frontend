@@ -19,6 +19,14 @@ const novoProdutoSchema = z.object({
     .string()
     .optional()
     .refine((valor) => !valor || Number(valor) >= 0, "O estoque mínimo não pode ser negativo"),
+  largura_cm: z
+    .string()
+    .optional()
+    .refine((valor) => !valor || Number(valor) > 0, "A largura deve ser maior que zero"),
+  comprimento_cm: z
+    .string()
+    .optional()
+    .refine((valor) => !valor || Number(valor) > 0, "O comprimento deve ser maior que zero"),
 });
 
 type NovoProdutoForm = z.infer<typeof novoProdutoSchema>;
@@ -42,6 +50,8 @@ export function NovoProduto() {
         nome: dados.nome,
         descricao: dados.descricao || undefined,
         estoque_minimo: dados.estoque_minimo ? Number(dados.estoque_minimo) : undefined,
+        largura_cm: dados.largura_cm ? Number(dados.largura_cm) : undefined,
+        comprimento_cm: dados.comprimento_cm ? Number(dados.comprimento_cm) : undefined,
       });
       navigate(`/producao/produtos/${criado.id}`);
     } catch (error) {
@@ -93,6 +103,31 @@ export function NovoProduto() {
             error={errors.estoque_minimo?.message}
             {...register("estoque_minimo")}
           />
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              id="produto-largura-cm"
+              label="Largura (cm)"
+              type="number"
+              step="0.1"
+              min="0"
+              inputMode="decimal"
+              hint="Opcional. Usada para sugerir o consumo de tecido na produção."
+              error={errors.largura_cm?.message}
+              {...register("largura_cm")}
+            />
+            <Input
+              id="produto-comprimento-cm"
+              label="Comprimento (cm)"
+              type="number"
+              step="0.1"
+              min="0"
+              inputMode="decimal"
+              hint="Opcional."
+              error={errors.comprimento_cm?.message}
+              {...register("comprimento_cm")}
+            />
+          </div>
 
           <FormErrorBanner message={erro} />
 

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { ConfirmInline } from "../../components/ui/ConfirmInline";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -16,6 +16,7 @@ import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import {
   useAtenderPedido,
   useCancelarPedido,
+  useExcluirPedido,
   useFaturarPedido,
   usePedido,
   useUpdatePrazoPedido,
@@ -25,52 +26,64 @@ import { getApiErrorMessage } from "../../services/api";
 import type { ReservaMateriaPrimaPedido } from "../../types/compra";
 import type { PedidoItem } from "../../types/pedido";
 import { formatarData, formatarDataHora, formatarQuantidade } from "../../utils/format";
-import { STATUS_BENEFICIAMENTO_CLASS, STATUS_BENEFICIAMENTO_LABEL } from "../beneficiamento/statusBeneficiamento";
-import { TIPO_BENEFICIAMENTO_LABEL } from "../beneficiamento/tipoBeneficiamento";
+import { STATUS_SERVICO_EXTERNO_CLASS, STATUS_SERVICO_EXTERNO_LABEL } from "../servicos-externos/statusServicoExterno";
+import { TIPO_SERVICO_EXTERNO_LABEL } from "../servicos-externos/tipoServicoExterno";
 import { somarEnviadoPorProduto } from "../romaneios/quantidadeEnviada";
 import { algumItemComEnvioPendente } from "./parcialmenteAtendido";
 import { STATUS_PEDIDO_CLASS, STATUS_PEDIDO_LABEL } from "./statusPedido";
 
-// Item sem destino de beneficiamento não ganha nenhuma seção extra — evitar
-// ruído visual em pedidos simples (requisito explícito do spec).
-function AcabamentoItem({ item, pedidoId }: { item: PedidoItem; pedidoId: string }) {
-  if (item.destino_beneficiamento === "nenhum") return null;
+// A instrução (descrição da peça) aparece sempre que existir, independente
+// de acabamento externo. Já a seção de destino/serviço externo vinculado (tipo,
+// imagem de referência, status do prestador) só aparece quando houver de fato
+// um destino diferente de "nenhum" — item sem instrução e sem acabamento não
+// ganha nenhuma seção extra, para evitar ruído visual (requisito do spec).
+//
+// Renomeado de `AcabamentoItem` para `DetalheItemPedido` durante o rename
+// amplo de nomenclatura do serviço de acabamento externo (fase 5, tarefa
+// 5.9): o nome antigo refletia só o caso de acabamento, mas o componente já
+// cobre a instrução (descrição da peça) sempre, com ou sem acabamento.
+function DetalheItemPedido({ item, pedidoId }: { item: PedidoItem; pedidoId: string }) {
+  if (!item.instrucao && item.destino_servico_externo === "nenhum") return null;
 
   return (
     <div className="space-y-1 text-xs">
-      <p className="font-medium text-ink">{TIPO_BENEFICIAMENTO_LABEL[item.destino_beneficiamento]}</p>
       {item.instrucao && <p className="text-body">{item.instrucao}</p>}
-      {item.imagem_referencia_url && (
-        <a
-          href={item.imagem_referencia_url}
-          target="_blank"
-          rel="noreferrer"
-          className="font-medium text-action hover:underline"
-        >
-          Ver imagem de referência
-        </a>
-      )}
-      {item.beneficiamento ? (
-        <p>
-          <Link
-            to={`/beneficiamento/${item.beneficiamento.id}`}
-            className="font-medium tabular-nums text-action hover:underline"
-          >
-            {item.beneficiamento.codigo}
-          </Link>{" "}
-          ·{" "}
-          <span className={STATUS_BENEFICIAMENTO_CLASS[item.beneficiamento.status]}>
-            {STATUS_BENEFICIAMENTO_LABEL[item.beneficiamento.status]}
-          </span>
-        </p>
-      ) : (
-        <Link
-          to={`/beneficiamento/novo?pedido=${pedidoId}&pedido_item=${item.id}`}
-          className="font-medium text-action hover:underline"
-          data-print-hidden
-        >
-          Enviar para beneficiamento
-        </Link>
+      {item.destino_servico_externo !== "nenhum" && (
+        <>
+          <p className="font-medium text-ink">{TIPO_SERVICO_EXTERNO_LABEL[item.destino_servico_externo]}</p>
+          {item.imagem_referencia_url && (
+            <a
+              href={item.imagem_referencia_url}
+              target="_blank"
+              rel="noreferrer"
+              className="font-medium text-action hover:underline"
+            >
+              Ver imagem de referência
+            </a>
+          )}
+          {item.servico_externo ? (
+            <p>
+              <Link
+                to={`/servicos-externos/${item.servico_externo.id}`}
+                className="font-medium tabular-nums text-action hover:underline"
+              >
+                {item.servico_externo.codigo}
+              </Link>{" "}
+              ·{" "}
+              <span className={STATUS_SERVICO_EXTERNO_CLASS[item.servico_externo.status]}>
+                {STATUS_SERVICO_EXTERNO_LABEL[item.servico_externo.status]}
+              </span>
+            </p>
+          ) : (
+            <Link
+              to={`/servicos-externos/novo?pedido=${pedidoId}&pedido_item=${item.id}`}
+              className="font-medium text-action hover:underline"
+              data-print-hidden
+            >
+              Enviar para serviço externo
+            </Link>
+          )}
+        </>
       )}
     </div>
   );
@@ -331,6 +344,56 @@ function AcoesStatus({ pedidoId, status }: { pedidoId: string; status: string })
   );
 }
 
+// Exclusão definitiva do pedido — disponível em qualquer status (diferente de
+// AcoesStatus, que só existe para pendente/atendido), por isso é um bloco
+// próprio, separado por um divisor e com texto explicando o alcance da
+// cascata. Visualmente mais "pesada" que o botão ghost de cancelar (variante
+// `danger`, com contorno, em vez de `ghost-danger`) e com uma frase de aviso
+// acima — cancelar e excluir não podem parecer a mesma ação.
+function ExcluirPedido({ pedidoId }: { pedidoId: string }) {
+  const navigate = useNavigate();
+  const [erro, setErro] = useState<string | null>(null);
+  const erroRef = useRef<HTMLParagraphElement>(null);
+  const excluir = useExcluirPedido();
+
+  useEffect(() => {
+    if (erro) erroRef.current?.focus();
+  }, [erro]);
+
+  async function executar() {
+    setErro(null);
+    try {
+      await excluir.mutateAsync(pedidoId);
+      navigate("/pedidos", { state: { pedidoExcluido: true } });
+    } catch (error) {
+      setErro(getApiErrorMessage(error, "Não foi possível excluir o pedido."));
+    }
+  }
+
+  return (
+    <div className="mt-4 space-y-2 border-t border-border pt-4" data-print-hidden>
+      <p className="text-xs text-muted">
+        Excluir remove o pedido e tudo que depende dele (itens, romaneios e reservas de matéria-prima
+        vinculados) de forma definitiva — diferente de cancelar, não pode ser desfeito.
+      </p>
+      <ConfirmInline
+        triggerLabel="Excluir pedido"
+        triggerVariant="danger"
+        question="Excluir pedido definitivamente? Esta ação não pode ser desfeita."
+        danger
+        loading={excluir.isPending}
+        restoreFocusOnConfirm={false}
+        onConfirm={executar}
+      />
+      {erro && (
+        <p ref={erroRef} tabIndex={-1} role="alert" className={feedbackErrorClass}>
+          {erro}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // Matéria-prima já reservada para este pedido no recebimento de uma
 // remessa — registro manual (não um algoritmo de alocação), ver design.md
 // da fase 2. Só existe quando alguém marcou explicitamente essa decisão ao
@@ -435,7 +498,11 @@ export function PedidoDetalhe() {
     );
   }
 
-  const temItemComBeneficiamento = pedido.itens.some((item) => item.destino_beneficiamento !== "nenhum");
+  // Coluna aparece quando algum item tem instrução (descrição da peça) e/ou
+  // destino de serviço externo — os dois casos que DetalheItemPedido exibe.
+  const temItemComDetalhe = pedido.itens.some(
+    (item) => item.instrucao || item.destino_servico_externo !== "nenhum",
+  );
   const temRomaneios = pedido.romaneios.length > 0;
 
   // Estado derivado — não um novo valor de status — comparando, por item, a
@@ -461,11 +528,11 @@ export function PedidoDetalhe() {
           },
         ]
       : []),
-    ...(temItemComBeneficiamento
+    ...(temItemComDetalhe
       ? [
           {
-            header: "Acabamento",
-            cell: (item: PedidoItem) => <AcabamentoItem item={item} pedidoId={pedido.id} />,
+            header: "Instrução",
+            cell: (item: PedidoItem) => <DetalheItemPedido item={item} pedidoId={pedido.id} />,
           },
         ]
       : []),
@@ -554,6 +621,8 @@ export function PedidoDetalhe() {
         <div className="mt-4">
           <AcoesStatus pedidoId={pedido.id} status={pedido.status} />
         </div>
+
+        <ExcluirPedido pedidoId={pedido.id} />
       </div>
 
       <div className="print-section space-y-3">
@@ -580,9 +649,9 @@ export function PedidoDetalhe() {
                   />
                 </p>
               )}
-              {item.destino_beneficiamento !== "nenhum" && (
+              {(item.instrucao || item.destino_servico_externo !== "nenhum") && (
                 <div className="pt-1">
-                  <AcabamentoItem item={item} pedidoId={pedido.id} />
+                  <DetalheItemPedido item={item} pedidoId={pedido.id} />
                 </div>
               )}
             </div>

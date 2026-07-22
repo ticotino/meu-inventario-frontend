@@ -19,8 +19,8 @@ function useInvalidatePrestadores() {
   const queryClient = useQueryClient();
   return () => {
     void queryClient.invalidateQueries({ queryKey: ["prestadores"] });
-    // prestador_nome aparece na listagem de beneficiamentos
-    void queryClient.invalidateQueries({ queryKey: ["beneficiamentos"] });
+    // prestador_nome aparece na listagem de serviços externos
+    void queryClient.invalidateQueries({ queryKey: ["servicos-externos"] });
   };
 }
 

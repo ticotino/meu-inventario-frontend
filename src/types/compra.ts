@@ -72,7 +72,7 @@ export interface ReceberSolicitacaoCompraInput {
   // reserva").
   reservas?: Array<{ pedido_id: string; quantidade_reservada: number }>;
   // Nota fiscal e valor desta remessa específica — mesmo padrão já usado em
-  // `ReceberBeneficiamentoInput` (nota_fiscal + valor_cobrado). O valor pode
+  // `ReceberServicoExternoInput` (nota_fiscal + valor_cobrado). O valor pode
   // variar entre remessas do mesmo tecido, então não sobrescreve o
   // `valor_unitario` do cadastro inicial da matéria-prima; fica associado a
   // este recebimento (ver design.md, decisão 6).

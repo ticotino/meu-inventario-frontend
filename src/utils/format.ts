@@ -1,6 +1,11 @@
 import type { UnidadeMedida } from "../types/materiaPrima";
 
 const quantidadeFormatter = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 3 });
+// Metragem de tecido sempre com pelo menos 2 casas decimais fixas (ex.: "30,00"
+// em vez de "30"), consistente com o jeito que o dono da oficina fala/escreve
+// metragem no dia a dia — ver design.md, decisão 6. Outras unidades (kg,
+// unidade, rolo) continuam sem mínimo de casas.
+const metragemFormatter = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 3 });
 const moedaFormatter = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
 const UNIDADE_SUFIXOS: Record<UnidadeMedida, { singular: string; plural: string }> = {
@@ -14,7 +19,8 @@ export function formatarQuantidade(valor: string | number, unidade: UnidadeMedid
   const numero = typeof valor === "number" ? valor : Number(valor);
   if (Number.isNaN(numero)) return "—";
   const sufixo = numero === 1 ? UNIDADE_SUFIXOS[unidade].singular : UNIDADE_SUFIXOS[unidade].plural;
-  return `${quantidadeFormatter.format(numero)} ${sufixo}`;
+  const formatter = unidade === "metro" ? metragemFormatter : quantidadeFormatter;
+  return `${formatter.format(numero)} ${sufixo}`;
 }
 
 export function formatarMoeda(valor: string | number | null): string {

@@ -25,6 +25,9 @@ export interface MateriaPrima {
   valor_unitario: string | null;
   data_recebimento: string;
   observacoes: string | null;
+  // largura do rolo em centímetros — usada para sugerir o consumo de
+  // metragem na Produção (ver calcularConsumoSugerido). Exibida em metros na UI.
+  largura_rolo_cm: string | null;
   ativo: boolean;
   criado_por: string;
   criado_em: string;
@@ -40,6 +43,7 @@ export interface MateriaPrimaCreateInput {
   valor_unitario?: number;
   data_recebimento: string;
   observacoes?: string;
+  largura_rolo_cm?: number | null;
 }
 
 export interface MateriaPrimaUpdateInput {
@@ -48,6 +52,7 @@ export interface MateriaPrimaUpdateInput {
   cor?: string | null;
   observacoes?: string | null;
   estoque_minimo?: number | null;
+  largura_rolo_cm?: number | null;
   ativo?: boolean;
 }
 

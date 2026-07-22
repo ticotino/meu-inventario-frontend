@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { Input } from "../../components/ui/Input";
@@ -8,6 +8,7 @@ import { ResponsiveTable } from "../../components/ui/ResponsiveTable";
 import type { Coluna } from "../../components/ui/ResponsiveTable";
 import { ResultsAnnouncer } from "../../components/ui/ResultsAnnouncer";
 import { Select } from "../../components/ui/Select";
+import { SuccessBanner } from "../../components/ui/SuccessBanner";
 import { TableSkeleton } from "../../components/ui/TableSkeleton";
 import { buttonClasses } from "../../components/ui/formStyles";
 import { useClientes } from "../../hooks/useClientes";
@@ -19,8 +20,23 @@ import { formatarData } from "../../utils/format";
 import { PedidosTabs } from "./PedidosTabs";
 import { STATUS_PEDIDO_CLASS, STATUS_PEDIDO_LABEL } from "./statusPedido";
 
+interface PedidosLocationState {
+  pedidoExcluido?: boolean;
+}
+
 export function Pedidos() {
   useDocumentTitle("Pedidos");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const pedidoExcluido = Boolean((location.state as PedidosLocationState | null)?.pedidoExcluido);
+
+  // Limpa o state assim que exibido: evita reexibir o aviso ao voltar para
+  // esta rota depois (ex.: navegação pelo histórico do navegador) — mesmo
+  // padrão já usado em Login.tsx após o redirect pós-cadastro.
+  useEffect(() => {
+    if (location.state) navigate("/pedidos", { replace: true, state: null });
+  }, [location.state, navigate]);
+
   const [clienteId, setClienteId] = useState("");
   const [status, setStatus] = useState<PedidoStatus | "">("");
   const [prazo, setPrazo] = useState<PedidoPrazoFiltro | "">("");
@@ -103,6 +119,8 @@ export function Pedidos() {
       />
 
       <PedidosTabs />
+
+      {pedidoExcluido && <SuccessBanner>Pedido excluído com sucesso.</SuccessBanner>}
 
       <div className="flex flex-wrap gap-3">
         <div className="max-w-56">

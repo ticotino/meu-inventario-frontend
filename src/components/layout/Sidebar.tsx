@@ -49,7 +49,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Operação",
     items: [
       { to: "/producao", label: "Produção", icon: Factory },
-      { to: "/beneficiamento", label: "Beneficiamento", icon: Workflow },
+      { to: "/servicos-externos", label: "Serviços Externos", icon: Workflow },
       { to: "/pedidos", label: "Pedidos", icon: ClipboardList },
       { to: "/romaneios", label: "Romaneios", icon: Truck },
     ],

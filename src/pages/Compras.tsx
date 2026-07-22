@@ -41,7 +41,7 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
   const [erroQuantidade, setErroQuantidade] = useState<string | null>(null);
   const [erroApi, setErroApi] = useState<string | null>(null);
   // Nota fiscal e valor desta remessa — opcionais, mesmo padrão já usado no
-  // recebimento de beneficiamento. Preenchidos aqui, no recebimento, porque
+  // recebimento de serviço externo. Preenchidos aqui, no recebimento, porque
   // o valor pode variar entre remessas do mesmo tecido (não é o mesmo campo
   // do cadastro inicial da matéria-prima).
   const [notaFiscal, setNotaFiscal] = useState("");
@@ -61,7 +61,9 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
   const processando = criar.isPending || receber.isPending || cancelar.isPending;
 
   function atualizarLinhaReserva(index: number, campo: keyof LinhaReserva, valor: string) {
-    setLinhasReserva((atual) => atual.map((linha, i) => (i === index ? { ...linha, [campo]: valor } : linha)));
+    setLinhasReserva((atual) =>
+      atual.map((linha, i) => (i === index ? { ...linha, [campo]: valor } : linha)),
+    );
   }
 
   function adicionarLinhaReserva() {
@@ -122,7 +124,7 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
         quantidade_recebida: valor,
         reservas,
         nota_fiscal: notaFiscal.trim() || undefined,
-        valor_unitario: valorUnitario ? numeroPositivo(valorUnitario) ?? undefined : undefined,
+        valor_unitario: valorUnitario ? (numeroPositivo(valorUnitario) ?? undefined) : undefined,
       });
       onFeedback(
         reservas
@@ -150,7 +152,10 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
   }
 
   return (
-    <article className="rounded-lg border border-border bg-surface p-4 shadow-card" aria-labelledby={`compra-${item.materia_prima_id}`}>
+    <article
+      className="rounded-lg border border-border bg-surface p-4 shadow-card"
+      aria-labelledby={`compra-${item.materia_prima_id}`}
+    >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h3 id={`compra-${item.materia_prima_id}`} className="font-semibold text-ink">
@@ -158,22 +163,51 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
           </h3>
           {item.cor && <p className="mt-0.5 text-sm text-muted">Cor: {item.cor}</p>}
         </div>
-        <span className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${temSolicitacao ? "bg-warning-bg text-warning" : "bg-danger-bg text-danger-strong"}`}>
+        <span
+          className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${temSolicitacao ? "bg-warning-bg text-warning" : "bg-danger-bg text-danger-strong"}`}
+        >
           {temSolicitacao ? "Compra solicitada" : "Reposição necessária"}
         </span>
       </div>
 
       <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-3">
-        <div><dt className="text-muted">Saldo atual</dt><dd className="mt-0.5 font-medium tabular-nums text-ink">{formatarQuantidade(item.quantidade_disponivel, item.unidade_medida)}</dd></div>
-        <div><dt className="text-muted">Estoque mínimo</dt><dd className="mt-0.5 font-medium tabular-nums text-ink">{formatarQuantidade(item.estoque_minimo, item.unidade_medida)}</dd></div>
-        <div><dt className="text-muted">Reposição até o mínimo</dt><dd className="mt-0.5 font-medium tabular-nums text-ink">{formatarQuantidade(item.quantidade_sugerida, item.unidade_medida)}</dd></div>
+        <div>
+          <dt className="text-muted">Saldo atual</dt>
+          <dd className="mt-0.5 font-medium tabular-nums text-ink">
+            {formatarQuantidade(item.quantidade_disponivel, item.unidade_medida)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted">Estoque mínimo</dt>
+          <dd className="mt-0.5 font-medium tabular-nums text-ink">
+            {formatarQuantidade(item.estoque_minimo, item.unidade_medida)}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-muted">Reposição até o mínimo</dt>
+          <dd className="mt-0.5 font-medium tabular-nums text-ink">
+            {formatarQuantidade(item.quantidade_sugerida, item.unidade_medida)}
+          </dd>
+        </div>
       </dl>
 
       {temSolicitacao && (
         <div className="mt-4 rounded-md bg-page p-3 text-sm text-body">
-          <p><span className="font-medium">Solicitado:</span> <span className="tabular-nums">{formatarQuantidade(item.quantidade_solicitada ?? "0", item.unidade_medida)}</span></p>
-          {item.solicitacao_criado_em && <p className="mt-1 text-muted">Criada em {formatarDataHora(item.solicitacao_criado_em)}{item.solicitacao_criado_por_nome ? ` por ${item.solicitacao_criado_por_nome}` : ""}</p>}
-          {item.solicitacao_observacoes && <p className="mt-1 whitespace-pre-wrap text-muted">{item.solicitacao_observacoes}</p>}
+          <p>
+            <span className="font-medium">Solicitado:</span>{" "}
+            <span className="tabular-nums">
+              {formatarQuantidade(item.quantidade_solicitada ?? "0", item.unidade_medida)}
+            </span>
+          </p>
+          {item.solicitacao_criado_em && (
+            <p className="mt-1 text-muted">
+              Criada em {formatarDataHora(item.solicitacao_criado_em)}
+              {item.solicitacao_criado_por_nome ? ` por ${item.solicitacao_criado_por_nome}` : ""}
+            </p>
+          )}
+          {item.solicitacao_observacoes && (
+            <p className="mt-1 whitespace-pre-wrap text-muted">{item.solicitacao_observacoes}</p>
+          )}
           {item.reservas.length > 0 && (
             <div className="mt-2 space-y-1 border-t border-border pt-2">
               <p className="font-medium text-ink">Reservado para:</p>
@@ -190,7 +224,11 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
         </div>
       )}
 
-      <form onSubmit={temSolicitacao ? confirmarRecebimento : solicitar} className="mt-4 space-y-3" noValidate>
+      <form
+        onSubmit={temSolicitacao ? confirmarRecebimento : solicitar}
+        className="mt-4 space-y-3"
+        noValidate
+      >
         <div className="grid gap-3 sm:grid-cols-[minmax(0,16rem)_1fr] sm:items-end">
           <Input
             id={`quantidade-compra-${item.materia_prima_id}`}
@@ -202,11 +240,19 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
             required
             value={quantidade}
             onChange={(event) => setQuantidade(event.target.value)}
-            hint={temSolicitacao ? "Informe a quantidade que chegou; ela pode ser diferente da solicitada." : `Unidade: ${item.unidade_medida}.`}
+            hint={
+              temSolicitacao
+                ? "Informe a quantidade que chegou; ela pode ser diferente da solicitada."
+                : `Unidade: ${item.unidade_medida}.`
+            }
             error={erroQuantidade ?? undefined}
           />
           <div className="flex flex-wrap gap-2">
-            <Button type="submit" loading={temSolicitacao ? receber.isPending : criar.isPending} loadingText="Salvando…">
+            <Button
+              type="submit"
+              loading={temSolicitacao ? receber.isPending : criar.isPending}
+              loadingText="Salvando…"
+            >
               {temSolicitacao ? "Confirmar recebimento" : "Criar solicitação"}
             </Button>
             {temSolicitacao && (
@@ -329,7 +375,11 @@ function CompraItem({ item, onFeedback }: CompraItemProps) {
           />
         )}
         <FormErrorBanner message={erroApi} />
-        {processando && <span className="sr-only" aria-live="polite">Processando solicitação de {item.codigo}</span>}
+        {processando && (
+          <span className="sr-only" aria-live="polite">
+            Processando solicitação de {item.codigo}
+          </span>
+        )}
       </form>
     </article>
   );
@@ -351,24 +401,44 @@ export function Compras() {
 
   return (
     <div className="space-y-6">
-      <PageHeader titulo="Compras" descricao="Reponha matérias-primas ativas que atingiram o estoque mínimo." />
+      <PageHeader
+        titulo="Compras"
+        descricao="Reponha matérias-primas ativas que atingiram o estoque mínimo."
+      />
       {feedback && <SuccessBanner>{feedback}</SuccessBanner>}
       {isPending ? (
         <TableSkeleton linhas={5} />
       ) : isError ? (
-        <ErrorState mensagem={getApiErrorMessage(error, "Não foi possível carregar a lista de compras.")} onRetry={() => void refetch()} />
+        <ErrorState
+          mensagem={getApiErrorMessage(error, "Não foi possível carregar a lista de compras.")}
+          onRetry={() => void refetch()}
+        />
       ) : grupos.length === 0 ? (
-        <EmptyState titulo="Nenhuma reposição necessária" descricao="As matérias-primas ativas estão acima dos limites mínimos configurados." />
+        <EmptyState
+          titulo="Nenhuma reposição necessária"
+          descricao="As matérias-primas ativas estão acima dos limites mínimos configurados."
+        />
       ) : (
         <div className="space-y-8">
           {grupos.map(([fabricanteId, grupo]) => (
-            <section key={fabricanteId} aria-labelledby={`fabricante-compra-${fabricanteId}`} className="space-y-3">
+            <section
+              key={fabricanteId}
+              aria-labelledby={`fabricante-compra-${fabricanteId}`}
+              className="space-y-3"
+            >
               <div>
-                <h2 id={`fabricante-compra-${fabricanteId}`} className="text-lg font-semibold text-ink">{grupo.nome}</h2>
-                <p className="mt-1 text-sm text-muted">{grupo.itens.length} {grupo.itens.length === 1 ? "item para acompanhar" : "itens para acompanhar"}</p>
+                <h2 id={`fabricante-compra-${fabricanteId}`} className="text-lg font-semibold text-ink">
+                  {grupo.nome}
+                </h2>
+                <p className="mt-1 text-sm text-muted">
+                  {grupo.itens.length}{" "}
+                  {grupo.itens.length === 1 ? "item para acompanhar" : "itens para acompanhar"}
+                </p>
               </div>
               <div className="grid gap-4 xl:grid-cols-2">
-                {grupo.itens.map((item) => <CompraItem key={item.materia_prima_id} item={item} onFeedback={setFeedback} />)}
+                {grupo.itens.map((item) => (
+                  <CompraItem key={item.materia_prima_id} item={item} onFeedback={setFeedback} />
+                ))}
               </div>
             </section>
           ))}

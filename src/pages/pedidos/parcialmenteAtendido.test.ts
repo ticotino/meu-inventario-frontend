@@ -8,9 +8,9 @@ function item(parcial: Partial<PedidoItem> & Pick<PedidoItem, "produto_id" | "qu
     codigo: "P1",
     nome: "Produto 1",
     instrucao: null,
-    destino_beneficiamento: "nenhum",
+    destino_servico_externo: "nenhum",
     imagem_referencia_url: null,
-    beneficiamento: null,
+    servico_externo: null,
     ...parcial,
   };
 }

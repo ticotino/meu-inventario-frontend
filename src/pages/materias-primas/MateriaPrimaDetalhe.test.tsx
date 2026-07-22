@@ -32,6 +32,7 @@ const materiaPrima: MateriaPrima = {
   valor_unitario: "12.5",
   data_recebimento: "2026-01-01",
   observacoes: null,
+  largura_rolo_cm: null,
   ativo: true,
   criado_por: "user-1",
   criado_em: "2026-01-01T00:00:00Z",

@@ -35,6 +35,10 @@ const editarSchema = z.object({
     .string()
     .optional()
     .refine((valor) => !valor || Number(valor) >= 0, "O estoque mínimo não pode ser negativo"),
+  largura_rolo_m: z
+    .string()
+    .optional()
+    .refine((valor) => !valor || Number(valor) > 0, "A largura do rolo deve ser maior que zero"),
   ativo: z.boolean(),
 });
 
@@ -89,6 +93,7 @@ function FormEdicao({ materiaPrima }: { materiaPrima: MateriaPrima }) {
       cor: materiaPrima.cor ?? "",
       observacoes: materiaPrima.observacoes ?? "",
       estoque_minimo: materiaPrima.estoque_minimo ?? "",
+      largura_rolo_m: materiaPrima.largura_rolo_cm ? String(Number(materiaPrima.largura_rolo_cm) / 100) : "",
       ativo: materiaPrima.ativo,
     },
   });
@@ -99,6 +104,7 @@ function FormEdicao({ materiaPrima }: { materiaPrima: MateriaPrima }) {
       cor: materiaPrima.cor ?? "",
       observacoes: materiaPrima.observacoes ?? "",
       estoque_minimo: materiaPrima.estoque_minimo ?? "",
+      largura_rolo_m: materiaPrima.largura_rolo_cm ? String(Number(materiaPrima.largura_rolo_cm) / 100) : "",
       ativo: materiaPrima.ativo,
     });
   }, [materiaPrima, reset]);
@@ -115,6 +121,7 @@ function FormEdicao({ materiaPrima }: { materiaPrima: MateriaPrima }) {
           cor: dados.cor || null,
           observacoes: dados.observacoes || null,
           estoque_minimo: dados.estoque_minimo ? Number(dados.estoque_minimo) : null,
+          largura_rolo_cm: dados.largura_rolo_m ? Number(dados.largura_rolo_m) * 100 : null,
           ativo: dados.ativo,
         },
       });
@@ -158,6 +165,18 @@ function FormEdicao({ materiaPrima }: { materiaPrima: MateriaPrima }) {
           hint="Deixe vazio para desativar o alerta de estoque baixo."
           error={errors.estoque_minimo?.message}
           {...register("estoque_minimo")}
+        />
+
+        <Input
+          id="detalhe-largura-rolo"
+          label="Largura do rolo (m)"
+          type="number"
+          step="0.01"
+          min="0"
+          inputMode="decimal"
+          hint="Opcional. Usada para sugerir o consumo de tecido na produção."
+          error={errors.largura_rolo_m?.message}
+          {...register("largura_rolo_m")}
         />
 
         <label className="flex min-h-11 items-center gap-2 text-sm text-body">
@@ -310,6 +329,14 @@ export function MateriaPrimaDetalhe() {
           <ResumoItem rotulo="Recebido em" valor={formatarData(materiaPrima.data_recebimento)} />
           <ResumoItem rotulo="Fabricante" valor={materiaPrima.fabricante_nome} />
           <ResumoItem rotulo="Unidade" valor={UNIDADE_MEDIDA_LABELS[materiaPrima.unidade_medida]} />
+          <ResumoItem
+            rotulo="Largura do rolo"
+            valor={
+              materiaPrima.largura_rolo_cm
+                ? formatarQuantidade(Number(materiaPrima.largura_rolo_cm) / 100, "metro")
+                : "—"
+            }
+          />
         </dl>
         {materiaPrima.estoque_baixo && (
           <p role="status" className="mt-4 rounded-md bg-danger-bg px-3 py-2 text-sm font-medium text-danger-strong">

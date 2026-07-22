@@ -28,6 +28,10 @@ export async function cancelarPedido(id: string): Promise<PedidoRegistro> {
   return data.data;
 }
 
+export async function excluirPedido(id: string): Promise<void> {
+  await api.delete(`/pedidos/${id}`);
+}
+
 export async function atenderPedido(id: string): Promise<PedidoRegistro> {
   const { data } = await api.post<Envelope<PedidoRegistro>>(`/pedidos/${id}/atender`);
   return data.data;

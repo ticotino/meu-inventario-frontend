@@ -13,10 +13,10 @@ import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { useCreatePedido } from "../../hooks/usePedidos";
 import { useProdutos } from "../../hooks/useProdutos";
 import { getApiErrorMessage } from "../../services/api";
-import { TIPOS_BENEFICIAMENTO } from "../../types/beneficiamento";
-import type { TipoBeneficiamento } from "../../types/beneficiamento";
+import { TIPOS_SERVICO_EXTERNO } from "../../types/servicoExterno";
+import type { TipoServicoExterno } from "../../types/servicoExterno";
 import { formatarQuantidade } from "../../utils/format";
-import { TIPO_BENEFICIAMENTO_LABEL } from "../beneficiamento/tipoBeneficiamento";
+import { TIPO_SERVICO_EXTERNO_LABEL } from "../servicos-externos/tipoServicoExterno";
 import { novoPedidoSchema } from "./novoPedidoSchema";
 import type { NovoPedidoForm } from "./novoPedidoSchema";
 
@@ -56,8 +56,8 @@ export function NovoPedido() {
         {
           produto_id: "",
           quantidade: "",
-          precisa_beneficiamento: false,
-          destino_beneficiamento: "",
+          precisa_servico_externo: false,
+          destino_servico_externo: "",
           instrucao: "",
           imagem_referencia_url: "",
         },
@@ -105,15 +105,17 @@ export function NovoPedido() {
         itens: dados.itens.map((item) => ({
           produto_id: item.produto_id,
           quantidade: Number(item.quantidade),
-          // O toggle "precisa de acabamento externo?" governa os três campos
-          // juntos: desmarcado, o item é salvo com destino "nenhum" e sem
-          // instrução/imagem, mesmo que o usuário tenha digitado algo antes.
-          destino_beneficiamento: item.precisa_beneficiamento
-            ? (item.destino_beneficiamento as TipoBeneficiamento)
+          // A instrução descreve a peça em si e vale para qualquer item,
+          // então é enviada independentemente do acabamento externo. Já o
+          // toggle "precisa de acabamento externo?" continua controlando os
+          // outros dois campos juntos: desmarcado, o item é salvo com destino
+          // "nenhum" e sem imagem, mesmo que o usuário tenha digitado algo antes.
+          destino_servico_externo: item.precisa_servico_externo
+            ? (item.destino_servico_externo as TipoServicoExterno)
             : "nenhum",
-          instrucao: item.precisa_beneficiamento && item.instrucao ? item.instrucao : undefined,
+          instrucao: item.instrucao || undefined,
           imagem_referencia_url:
-            item.precisa_beneficiamento && item.imagem_referencia_url ? item.imagem_referencia_url : undefined,
+            item.precisa_servico_externo && item.imagem_referencia_url ? item.imagem_referencia_url : undefined,
         })),
       });
       navigate(`/pedidos/${criado.id}`);
@@ -198,7 +200,7 @@ export function NovoPedido() {
             )}
             {fields.map((field, i) => {
               const produtoSelecionado = produtoPorId.get(itensSelecionados?.[i]?.produto_id ?? "");
-              const precisaBeneficiamento = itensSelecionados?.[i]?.precisa_beneficiamento ?? false;
+              const precisaServicoExterno = itensSelecionados?.[i]?.precisa_servico_externo ?? false;
               return (
                 <div key={field.id} className="space-y-3 border-b border-border pb-4 last:border-0 last:pb-0">
                   <div className="grid gap-4 sm:grid-cols-[1fr_auto_auto] sm:items-start">
@@ -253,47 +255,48 @@ export function NovoPedido() {
                     </div>
                   </div>
 
+                  <Textarea
+                    id={`pedido-item-instrucao-${i}`}
+                    label="Instrução"
+                    maxLength={500}
+                    hint="Opcional. Descrição da peça e, quando houver, detalhes do acabamento (cores, tamanho, posição, texto ou desenho combinado com o cliente)."
+                    error={errors.itens?.[i]?.instrucao?.message}
+                    {...register(`itens.${i}.instrucao`)}
+                  />
+
                   <label
-                    htmlFor={`pedido-item-beneficiamento-${i}`}
+                    htmlFor={`pedido-item-servico-externo-${i}`}
                     className="flex items-center gap-2 text-sm text-body"
                   >
                     <input
-                      id={`pedido-item-beneficiamento-${i}`}
+                      id={`pedido-item-servico-externo-${i}`}
                       type="checkbox"
                       className="h-4 w-4 rounded border-control-border text-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
-                      {...register(`itens.${i}.precisa_beneficiamento`)}
+                      {...register(`itens.${i}.precisa_servico_externo`)}
                     />
                     Este item precisa de acabamento externo?
                   </label>
 
-                  {precisaBeneficiamento && (
+                  {precisaServicoExterno && (
                     <div className="space-y-3 rounded-md border border-border p-3">
                       <div className="sm:w-64">
                         <Select
                           id={`pedido-item-destino-${i}`}
                           label="Destino do acabamento"
                           required
-                          error={errors.itens?.[i]?.destino_beneficiamento?.message}
-                          {...register(`itens.${i}.destino_beneficiamento`)}
+                          error={errors.itens?.[i]?.destino_servico_externo?.message}
+                          {...register(`itens.${i}.destino_servico_externo`)}
                         >
                           <option value="" disabled>
                             Selecione...
                           </option>
-                          {TIPOS_BENEFICIAMENTO.map((tipo) => (
+                          {TIPOS_SERVICO_EXTERNO.map((tipo) => (
                             <option key={tipo} value={tipo}>
-                              {TIPO_BENEFICIAMENTO_LABEL[tipo]}
+                              {TIPO_SERVICO_EXTERNO_LABEL[tipo]}
                             </option>
                           ))}
                         </Select>
                       </div>
-                      <Textarea
-                        id={`pedido-item-instrucao-${i}`}
-                        label="Instrução"
-                        maxLength={500}
-                        hint="Opcional. Cores, tamanho, posição, texto ou desenho combinado com o cliente."
-                        error={errors.itens?.[i]?.instrucao?.message}
-                        {...register(`itens.${i}.instrucao`)}
-                      />
                       <Input
                         id={`pedido-item-imagem-${i}`}
                         label="Imagem de referência (URL)"
@@ -319,8 +322,8 @@ export function NovoPedido() {
                 append({
                   produto_id: "",
                   quantidade: "",
-                  precisa_beneficiamento: false,
-                  destino_beneficiamento: "",
+                  precisa_servico_externo: false,
+                  destino_servico_externo: "",
                   instrucao: "",
                   imagem_referencia_url: "",
                 });

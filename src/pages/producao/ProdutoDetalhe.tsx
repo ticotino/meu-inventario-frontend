@@ -23,6 +23,14 @@ const editarSchema = z.object({
     .string()
     .optional()
     .refine((valor) => !valor || Number(valor) >= 0, "O estoque mínimo não pode ser negativo"),
+  largura_cm: z
+    .string()
+    .optional()
+    .refine((valor) => !valor || Number(valor) > 0, "A largura deve ser maior que zero"),
+  comprimento_cm: z
+    .string()
+    .optional()
+    .refine((valor) => !valor || Number(valor) > 0, "O comprimento deve ser maior que zero"),
   ativo: z.boolean(),
 });
 
@@ -65,6 +73,8 @@ function FormEdicao({ produto }: { produto: Produto }) {
       nome: produto.nome,
       descricao: produto.descricao ?? "",
       estoque_minimo: produto.estoque_minimo ?? "",
+      largura_cm: produto.largura_cm ?? "",
+      comprimento_cm: produto.comprimento_cm ?? "",
       ativo: produto.ativo,
     },
   });
@@ -74,6 +84,8 @@ function FormEdicao({ produto }: { produto: Produto }) {
       nome: produto.nome,
       descricao: produto.descricao ?? "",
       estoque_minimo: produto.estoque_minimo ?? "",
+      largura_cm: produto.largura_cm ?? "",
+      comprimento_cm: produto.comprimento_cm ?? "",
       ativo: produto.ativo,
     });
   }, [produto, reset]);
@@ -89,6 +101,8 @@ function FormEdicao({ produto }: { produto: Produto }) {
           // "" significa "limpar o campo" em um form de edição.
           descricao: dados.descricao || null,
           estoque_minimo: dados.estoque_minimo ? Number(dados.estoque_minimo) : null,
+          largura_cm: dados.largura_cm ? Number(dados.largura_cm) : null,
+          comprimento_cm: dados.comprimento_cm ? Number(dados.comprimento_cm) : null,
           ativo: dados.ativo,
         },
       });
@@ -130,6 +144,31 @@ function FormEdicao({ produto }: { produto: Produto }) {
           error={errors.estoque_minimo?.message}
           {...register("estoque_minimo")}
         />
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            id="detalhe-produto-largura-cm"
+            label="Largura (cm)"
+            type="number"
+            step="0.1"
+            min="0"
+            inputMode="decimal"
+            hint="Opcional. Usada para sugerir o consumo de tecido na produção."
+            error={errors.largura_cm?.message}
+            {...register("largura_cm")}
+          />
+          <Input
+            id="detalhe-produto-comprimento-cm"
+            label="Comprimento (cm)"
+            type="number"
+            step="0.1"
+            min="0"
+            inputMode="decimal"
+            hint="Opcional."
+            error={errors.comprimento_cm?.message}
+            {...register("comprimento_cm")}
+          />
+        </div>
 
         <label className="flex min-h-11 items-center gap-2 text-sm text-body">
           <input type="checkbox" className="h-4 w-4 accent-action" {...register("ativo")} />

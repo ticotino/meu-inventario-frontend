@@ -53,15 +53,15 @@ const NovoProduto = lazy(() =>
 const ProdutoDetalhe = lazy(() =>
   import("./pages/producao/ProdutoDetalhe").then((module) => ({ default: module.ProdutoDetalhe })),
 );
-const Beneficiamentos = lazy(() =>
-  import("./pages/beneficiamento/Beneficiamentos").then((module) => ({ default: module.Beneficiamentos })),
+const ServicosExternos = lazy(() =>
+  import("./pages/servicos-externos/ServicosExternos").then((module) => ({ default: module.ServicosExternos })),
 );
-const NovoBeneficiamento = lazy(() =>
-  import("./pages/beneficiamento/NovoBeneficiamento").then((module) => ({ default: module.NovoBeneficiamento })),
+const NovoServicoExterno = lazy(() =>
+  import("./pages/servicos-externos/NovoServicoExterno").then((module) => ({ default: module.NovoServicoExterno })),
 );
-const BeneficiamentoDetalhe = lazy(() =>
-  import("./pages/beneficiamento/BeneficiamentoDetalhe").then((module) => ({
-    default: module.BeneficiamentoDetalhe,
+const ServicoExternoDetalhe = lazy(() =>
+  import("./pages/servicos-externos/ServicoExternoDetalhe").then((module) => ({
+    default: module.ServicoExternoDetalhe,
   })),
 );
 const Prestadores = lazy(() =>
@@ -133,10 +133,10 @@ export default function App() {
                 <Route path="/producao/produtos/novo" element={<NovoProduto />} />
                 <Route path="/producao/produtos/:id" element={<ProdutoDetalhe />} />
                 <Route path="/producao/:id" element={<ProducaoDetalhe />} />
-                <Route path="/beneficiamento" element={<Beneficiamentos />} />
-                <Route path="/beneficiamento/novo" element={<NovoBeneficiamento />} />
-                <Route path="/beneficiamento/prestadores" element={<Prestadores />} />
-                <Route path="/beneficiamento/:id" element={<BeneficiamentoDetalhe />} />
+                <Route path="/servicos-externos" element={<ServicosExternos />} />
+                <Route path="/servicos-externos/novo" element={<NovoServicoExterno />} />
+                <Route path="/servicos-externos/prestadores" element={<Prestadores />} />
+                <Route path="/servicos-externos/:id" element={<ServicoExternoDetalhe />} />
                 <Route path="/pedidos" element={<Pedidos />} />
                 <Route path="/pedidos/novo" element={<NovoPedido />} />
                 <Route path="/pedidos/clientes" element={<Clientes />} />

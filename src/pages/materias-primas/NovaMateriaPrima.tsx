@@ -38,6 +38,10 @@ const novaMateriaPrimaSchema = z.object({
     .refine((valor) => !valor || Number(valor) >= 0, "O valor não pode ser negativo"),
   data_recebimento: z.string().min(1, "Informe a data de recebimento"),
   observacoes: z.string().trim().max(1000, "As observações são muito longas").optional(),
+  largura_rolo_m: z
+    .string()
+    .optional()
+    .refine((valor) => !valor || Number(valor) > 0, "A largura do rolo deve ser maior que zero"),
 });
 
 type NovaMateriaPrimaForm = z.infer<typeof novaMateriaPrimaSchema>;
@@ -81,6 +85,7 @@ export function NovaMateriaPrima() {
         valor_unitario: dados.valor_unitario ? Number(dados.valor_unitario) : undefined,
         data_recebimento: dados.data_recebimento,
         observacoes: dados.observacoes || undefined,
+        largura_rolo_cm: dados.largura_rolo_m ? Number(dados.largura_rolo_m) * 100 : undefined,
       });
       navigate(`/materias-primas/${criada.id}`);
     } catch (error) {
@@ -207,6 +212,18 @@ export function NovaMateriaPrima() {
             required
             error={errors.data_recebimento?.message}
             {...register("data_recebimento")}
+          />
+
+          <Input
+            id="mp-largura-rolo"
+            label="Largura do rolo (m)"
+            type="number"
+            step="0.01"
+            min="0"
+            inputMode="decimal"
+            hint="Opcional. Usada para sugerir o consumo de tecido na produção."
+            error={errors.largura_rolo_m?.message}
+            {...register("largura_rolo_m")}
           />
 
           <Textarea

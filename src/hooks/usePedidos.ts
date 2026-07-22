@@ -3,6 +3,7 @@ import {
   atenderPedido,
   cancelarPedido,
   createPedido,
+  excluirPedido,
   faturarPedido,
   getPedido,
   listPedidos,
@@ -46,6 +47,21 @@ export function useCancelarPedido() {
     mutationFn: (id: string) => cancelarPedido(id),
     onSuccess: () => {
       // Cancelar devolve o saldo consumido pelo pedido.
+      void queryClient.invalidateQueries({ queryKey: ["pedidos"] });
+      void queryClient.invalidateQueries({ queryKey: ["produtos"] });
+      void queryClient.invalidateQueries({ queryKey: ["movimentacoes-estoque"] });
+      void queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+    },
+  });
+}
+
+export function useExcluirPedido() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => excluirPedido(id),
+    onSuccess: () => {
+      // Excluir devolve o saldo consumido pelo pedido (quando ainda não foi
+      // devolvido por um cancelamento anterior) e remove o registro por completo.
       void queryClient.invalidateQueries({ queryKey: ["pedidos"] });
       void queryClient.invalidateQueries({ queryKey: ["produtos"] });
       void queryClient.invalidateQueries({ queryKey: ["movimentacoes-estoque"] });

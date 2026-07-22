@@ -1,4 +1,4 @@
-import type { StatusBeneficiamento, TipoBeneficiamento } from "./beneficiamento";
+import type { StatusServicoExterno, TipoServicoExterno } from "./servicoExterno";
 
 export type PedidoStatus = "pendente" | "atendido" | "cancelado" | "faturado";
 export type PedidoPrazoFiltro = "atrasado" | "vence_hoje" | "proximo";
@@ -36,13 +36,13 @@ export interface Pedido extends PedidoRegistro {
   parcialmente_atendido: boolean;
 }
 
-// Resumo (JOIN) do beneficiamento em andamento vinculado a um item — só
+// Resumo (JOIN) do serviço externo em andamento vinculado a um item — só
 // aparece quando o item já foi efetivamente enviado a um prestador.
-export interface PedidoItemBeneficiamento {
+export interface PedidoItemServicoExterno {
   id: string;
   codigo: string;
-  tipo: TipoBeneficiamento;
-  status: StatusBeneficiamento;
+  tipo: TipoServicoExterno;
+  status: StatusServicoExterno;
   prestador_nome: string;
 }
 
@@ -54,10 +54,10 @@ export interface PedidoItem {
   codigo: string;
   nome: string;
   instrucao: string | null;
-  destino_beneficiamento: "nenhum" | TipoBeneficiamento;
+  destino_servico_externo: "nenhum" | TipoServicoExterno;
   imagem_referencia_url: string | null;
-  // Preenchido quando o item já foi enviado a um prestador (JOIN com beneficiamentos).
-  beneficiamento: PedidoItemBeneficiamento | null;
+  // Preenchido quando o item já foi enviado a um prestador (JOIN com servicos_externos).
+  servico_externo: PedidoItemServicoExterno | null;
 }
 
 export interface PedidoDetalhe extends Pedido {
@@ -77,7 +77,7 @@ export interface PedidoCreateInput {
     produto_id: string;
     quantidade: number;
     instrucao?: string;
-    destino_beneficiamento?: "nenhum" | TipoBeneficiamento;
+    destino_servico_externo?: "nenhum" | TipoServicoExterno;
     imagem_referencia_url?: string;
   }>;
 }

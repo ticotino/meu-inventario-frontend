@@ -10,8 +10,8 @@ const dadosValidos = {
     {
       produto_id: "produto-1",
       quantidade: "10",
-      precisa_beneficiamento: false,
-      destino_beneficiamento: "",
+      precisa_servico_externo: false,
+      destino_servico_externo: "",
       instrucao: "",
       imagem_referencia_url: "",
     },
@@ -29,8 +29,8 @@ describe("novoPedidoSchema", () => {
       itens: [
         {
           ...dadosValidos.itens[0],
-          precisa_beneficiamento: true,
-          destino_beneficiamento: "bordado",
+          precisa_servico_externo: true,
+          destino_servico_externo: "bordado",
           instrucao: "Bordar logo no peito",
         },
       ],
@@ -41,7 +41,7 @@ describe("novoPedidoSchema", () => {
   it("rejeita item com acabamento marcado mas sem destino selecionado", () => {
     const resultado = novoPedidoSchema.safeParse({
       ...dadosValidos,
-      itens: [{ ...dadosValidos.itens[0], precisa_beneficiamento: true, destino_beneficiamento: "" }],
+      itens: [{ ...dadosValidos.itens[0], precisa_servico_externo: true, destino_servico_externo: "" }],
     });
     expect(resultado.success).toBe(false);
   });
@@ -52,13 +52,43 @@ describe("novoPedidoSchema", () => {
       itens: [
         {
           ...dadosValidos.itens[0],
-          precisa_beneficiamento: true,
-          destino_beneficiamento: "silk",
+          precisa_servico_externo: true,
+          destino_servico_externo: "silk",
           instrucao: "",
         },
       ],
     });
     expect(resultado.success).toBe(true);
+  });
+
+  it("aceita instrução preenchida mesmo sem acabamento externo", () => {
+    const resultado = novoPedidoSchema.safeParse({
+      ...dadosValidos,
+      itens: [
+        {
+          ...dadosValidos.itens[0],
+          precisa_servico_externo: false,
+          destino_servico_externo: "",
+          instrucao: "camisa azul manga longa",
+        },
+      ],
+    });
+    expect(resultado.success).toBe(true);
+  });
+
+  it("valida o limite de tamanho da instrução independentemente do acabamento", () => {
+    const resultado = novoPedidoSchema.safeParse({
+      ...dadosValidos,
+      itens: [
+        {
+          ...dadosValidos.itens[0],
+          precisa_servico_externo: false,
+          destino_servico_externo: "",
+          instrucao: "a".repeat(501),
+        },
+      ],
+    });
+    expect(resultado.success).toBe(false);
   });
 
   it("rejeita prazo de entrega anterior à data do pedido", () => {

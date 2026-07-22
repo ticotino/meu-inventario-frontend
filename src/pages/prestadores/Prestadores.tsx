@@ -14,7 +14,7 @@ import { useDocumentTitle } from "../../hooks/useDocumentTitle";
 import { getApiErrorMessage } from "../../services/api";
 import type { Prestador } from "../../types/prestador";
 import { TIPO_SERVICO_PRESTADOR_LABEL } from "../../types/prestador";
-import { BeneficiamentoTabs } from "../beneficiamento/BeneficiamentoTabs";
+import { ServicoExternoTabs } from "../servicos-externos/ServicoExternoTabs";
 import { PrestadorForm } from "./PrestadorForm";
 
 type FormAberto = { modo: "criar" } | { modo: "editar"; prestador: Prestador } | null;
@@ -168,11 +168,11 @@ export function Prestadores() {
     <div className="space-y-6">
       <PageHeader
         titulo="Prestadores"
-        descricao="Costureiras externas, silks e bordadeiras que fazem beneficiamento terceirizado."
+        descricao="Costureiras externas, silks e bordadeiras que prestam serviços externos."
         action={formAberto === null && <Button onClick={abrirCriacao}>Novo prestador</Button>}
       />
 
-      <BeneficiamentoTabs />
+      <ServicoExternoTabs />
 
       {formAberto && (
         <PrestadorForm
@@ -227,7 +227,7 @@ export function Prestadores() {
         ) : (
           <EmptyState
             titulo="Nenhum prestador ainda"
-            descricao="Prestadores são as costureiras externas, silks e bordadeiras que fazem beneficiamento terceirizado. Cadastre o primeiro para poder enviar produções para eles."
+            descricao="Prestadores são as costureiras externas, silks e bordadeiras que prestam serviços externos. Cadastre o primeiro para poder enviar produções para eles."
             action={<Button onClick={abrirCriacao}>Cadastrar o primeiro prestador</Button>}
           />
         )

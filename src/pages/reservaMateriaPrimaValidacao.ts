@@ -12,8 +12,7 @@ export interface ReservaValidada {
 }
 
 export type ResultadoValidacaoReservas =
-  | { ok: true; reservas: ReservaValidada[] }
-  | { ok: false; erro: string };
+  { ok: true; reservas: ReservaValidada[] } | { ok: false; erro: string };
 
 // Aceita tanto vírgula quanto ponto decimal (teclado numérico de celular
 // costuma inserir vírgula) e rejeita zero/negativo — usado tanto para a
